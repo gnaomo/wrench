@@ -1,5 +1,45 @@
 # Changelog
 
+> **Note (LLM-edited, unverified):** The "Unreleased" section below was
+> drafted by an LLM (Claude) reading a working-tree diff, not written by a
+> human maintainer after review. The changes are now committed and the
+> build succeeds, but have not been reviewed, tested against edge cases,
+> or verified for architectural correctness by a human. Multiple separate
+> LLM sessions have been working on this codebase without cross-checking
+> each other. Revise, expand, or remove these entries once someone has
+> actually confirmed each change is correct -- don't treat this section as
+> a finished, trustworthy changelog yet. See the "Recently committed
+> changes" section at the top of TODO.md for more technical detail on each
+> item below.
+
+## Unreleased
+
+- Use glTF (.glb) to store collision models instead of COLLADA.
+  Note: quad collision faces are now always split into two triangles when
+  converted to glTF (glTF has no native quad primitive), and are not
+  reconstructed as quads on the way back. This does not change in-game
+  collision behaviour, and per-octant vertex/quad limits in the packer
+  aren't affected, but it does mean more, smaller faces per octant for
+  quad-heavy meshes -- larger files, and in an extreme, unlikely case
+  (very roughly 32,768+ quad faces in a single octant before the split)
+  it could hit the packer's hard per-octant face-count limit and abort a
+  build outright rather than degrade gracefully. See TODO.md for the full
+  breakdown.
+- Fixed source-file path matching (`enumerate_source_files`) on Windows
+  for in-memory asset banks, which previously compared paths without
+  normalising separators and so would not have matched.
+- Fixed a potential buffer overflow in `OutBuffer::writesf`/`writelf`
+  (`core/buffer.cpp`): formatted strings longer than a fixed 16KB stack
+  buffer could silently overrun it. Replaced with a two-pass `vsnprintf`
+  sizing approach.
+- Added a best-effort crash handler (`core/util/crash_handler.cpp`) that
+  prints a signal name, error context, and a demangled backtrace on
+  SIGSEGV/SIGABRT/SIGFPE/SIGILL before re-raising. Not fully
+  async-signal-safe by design (diagnostic aid, not a hardened handler).
+- Default `CMAKE_BUILD_TYPE` to `RelWithDebInfo` when unspecified, and
+  pass `-rdynamic` on Linux/macOS so the crash handler above can produce
+  symbolised backtraces.
+
 ## v0.6
 
 - Use glTF (.glb) to store moby models instead of COLLADA.

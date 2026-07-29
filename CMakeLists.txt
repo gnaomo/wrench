@@ -31,6 +31,18 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "In-tree build detected. You should do an out-of-tree build instead:\n\tcmake -B bin/")
 endif()
 
+# If no build type was specified, default to RelWithDebInfo rather than
+# silently building without -DNDEBUG. Without this, libstdc++'s runtime
+# bounds-checking (enabled whenever NDEBUG isn't defined on newer GCC/glibc
+# toolchains) can turn latent out-of-bounds bugs into hard crashes on some
+# platforms/toolchains but not others, which is confusing to debug.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	message(STATUS "CMAKE_BUILD_TYPE not specified, defaulting to RelWithDebInfo. "
+		"Pass -DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo|MinSizeRel explicitly to override.")
+	set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build." FORCE)
+	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 # Output all the binaries into the root of the build directory.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 

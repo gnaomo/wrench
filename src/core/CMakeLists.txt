@@ -6,6 +6,7 @@ add_library(wrenchcore STATIC
 	buffer.cpp
 	util/basic_util.cpp
 	util/error_util.cpp
+	util/crash_handler.cpp
 	mesh.cpp
 	collada.cpp
 	timer.cpp

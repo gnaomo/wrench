@@ -110,8 +110,9 @@ void ZippedAssetBank::enumerate_source_files(std::map<fs::path, const AssetBank*
 	s64 count = zip_get_num_entries(m_zip, 0);
 	for (s64 i = 0; i < count; i++) {
 		if (const char* name = zip_get_name(m_zip, i, 0)) {
-			std::string str = fs::path(name).lexically_relative(m_prefix).string();
-			std::replace(str.begin(), str.end(), '\\', '/');
+			// generic_string() so this matches consistently regardless of the
+			// platform the zip was written on or is being read on.
+			std::string str = fs::path(name).lexically_relative(m_prefix).generic_string();
 			if (str.starts_with(common_source_path) || str.starts_with(game_source_path)) {
 				dest[str] = this;
 			}

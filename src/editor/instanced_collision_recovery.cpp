@@ -19,6 +19,7 @@
 #include "instanced_collision_recovery.h"
 
 #include <engine/collision.h>
+#include <wrenchbuild/level/collision_mesh.h>
 
 std::vector<ColLevel> load_instance_collision_data(
 	BuildAsset& build, std::function<bool()>&& check_is_still_running)
@@ -43,11 +44,7 @@ std::vector<ColLevel> load_instance_collision_data(
 				ColChunk& chunk_dest = dest.chunks[i].emplace();
 				ChunkAsset& chunk = chunks.get_child(i).as<ChunkAsset>();
 				chunk_dest.asset = &chunk;
-				MeshAsset& mesh_asset = chunk.get_collision().as<CollisionAsset>().get_mesh();
-				std::string collada_xml = mesh_asset.src().read_text_file();
-				verify(!collada_xml.empty(), "Empty collision mesh file.");
-				chunk_dest.collision_scene = read_collada(&collada_xml[0]);
-				chunk_dest.collision_mesh = chunk_dest.collision_scene.find_mesh(mesh_asset.name());
+				append_collision(chunk_dest.collision_mesh, chunk.get_collision().as<CollisionAsset>(), glm::mat4(1.f));
 			}
 		}
 		
@@ -163,11 +160,11 @@ Opt<ColladaScene> build_instanced_collision(
 		const ColInstance& inst = level.instances[type][mapping.instance];
 		const Opt<ColChunk>& chunk = level.chunks[inst.chunk];
 		if (!chunk.has_value()) continue;
-		Mesh& mesh = *chunk->collision_mesh;
+		const Mesh& mesh = chunk->collision_mesh;
 		for (s32 s = 0; s < (s32) mesh.submeshes.size(); s++) {
-			SubMesh& submesh = mesh.submeshes[s];
+			const SubMesh& submesh = mesh.submeshes[s];
 			for (s32 f = 0; f < (s32) submesh.faces.size(); f++) {
-				Face& face = submesh.faces[f];
+				const Face& face = submesh.faces[f];
 				ColFace key;
 				s32 faces[3] = {face.v0, face.v1, face.v2};
 				bool accept = false;
@@ -220,7 +217,7 @@ Opt<ColladaScene> build_instanced_collision(
 			const ColInstance& inst = level.instances[type][mapping.instance];
 			const Opt<ColChunk>& chunk = level.chunks[inst.chunk];
 			if (!chunk.has_value()) continue;
-			Mesh& mesh_src = *chunk->collision_mesh;
+			const Mesh& mesh_src = chunk->collision_mesh;
 			const SubMesh& submesh_src = mesh_src.submeshes[value.submesh];
 			const Face& face_src = submesh_src.faces[value.face];
 			if (submesh_src.material < 0 || submesh_src.material > 255) {

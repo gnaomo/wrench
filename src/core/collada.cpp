@@ -759,7 +759,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 		dest.writelf("\t\t\t<mesh>");
 		
 		dest.writelf(4, "<source id=\"mesh_%d_positions\">", i);
-		dest.writesf(4, "\t<float_array id=\"mesh_%d_positions_array\" count=\"%d\">", i, 3 * mesh.vertices.size());
+		dest.writesf(4, "\t<float_array id=\"mesh_%d_positions_array\" count=\"%d\">", i, (s32) (3 * mesh.vertices.size()));
 		for (const Vertex& v : mesh.vertices) {
 			dest.writesf("%.9g %.9g %.9g ", v.pos.x, v.pos.y, v.pos.z);
 		}
@@ -768,7 +768,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 		}
 		dest.writelf("</float_array>");
 		dest.writelf(4, "\t<technique_common>");
-		dest.writelf(4, "\t\t<accessor count=\"%d\" offset=\"0\" source=\"#mesh_%d_positions_array\" stride=\"3\">", mesh.vertices.size(), i);
+		dest.writelf(4, "\t\t<accessor count=\"%d\" offset=\"0\" source=\"#mesh_%d_positions_array\" stride=\"3\">", (s32) mesh.vertices.size(), i);
 		dest.writelf(4, "\t\t\t<param name=\"X\" type=\"float\"/>");
 		dest.writelf(4, "\t\t\t<param name=\"Y\" type=\"float\"/>");
 		dest.writelf(4, "\t\t\t<param name=\"Z\" type=\"float\"/>");
@@ -777,7 +777,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 		dest.writelf(4, "</source>");
 		if (mesh.flags & MESH_HAS_NORMALS) {
 			dest.writelf(4, "<source id=\"mesh_%d_normals\">", i);
-			dest.writesf(4, "\t<float_array id=\"mesh_%d_normals_array\" count=\"%d\">", i, 3 * mesh.vertices.size());
+			dest.writesf(4, "\t<float_array id=\"mesh_%d_normals_array\" count=\"%d\">", i, (s32) (3 * mesh.vertices.size()));
 			for (const Vertex& v : mesh.vertices) {
 				dest.writesf("%.9g %.9g %.9g ", v.normal.x, v.normal.y, v.normal.z);
 			}
@@ -786,7 +786,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 			}
 			dest.writelf("</float_array>");
 			dest.writelf(4, "\t<technique_common>");
-			dest.writelf(4, "\t\t<accessor count=\"%d\" offset=\"0\" source=\"#mesh_%d_normals_array\" stride=\"3\">", mesh.vertices.size(), i);
+			dest.writelf(4, "\t\t<accessor count=\"%d\" offset=\"0\" source=\"#mesh_%d_normals_array\" stride=\"3\">", (s32) mesh.vertices.size(), i);
 			dest.writelf(4, "\t\t\t<param name=\"X\" type=\"float\"/>");
 			dest.writelf(4, "\t\t\t<param name=\"Y\" type=\"float\"/>");
 			dest.writelf(4, "\t\t\t<param name=\"Z\" type=\"float\"/>");
@@ -796,7 +796,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 		}
 		if (mesh.flags & MESH_HAS_VERTEX_COLOURS) {
 			dest.writelf(4, "<source id=\"mesh_%d_colours\">", i);
-			dest.writesf(4, "\t<float_array id=\"mesh_%d_colours_array\" count=\"%d\">", i, 4 * mesh.vertices.size());
+			dest.writesf(4, "\t<float_array id=\"mesh_%d_colours_array\" count=\"%d\">", i, (s32) (4 * mesh.vertices.size()));
 			for (const Vertex& v : mesh.vertices) {
 				f32 r = v.colour.r / 255.f;
 				f32 g = v.colour.g / 255.f;
@@ -809,7 +809,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 			}
 			dest.writelf("</float_array>");
 			dest.writelf(4, "\t<technique_common>");
-			dest.writelf(4, "\t\t<accessor count=\"%d\" offset=\"0\" source=\"#mesh_%d_colours_array\" stride=\"4\">", mesh.vertices.size(), i);
+			dest.writelf(4, "\t\t<accessor count=\"%d\" offset=\"0\" source=\"#mesh_%d_colours_array\" stride=\"4\">", (s32) mesh.vertices.size(), i);
 			dest.writelf(4, "\t\t\t<param name=\"R\" type=\"float\"/>");
 			dest.writelf(4, "\t\t\t<param name=\"G\" type=\"float\"/>");
 			dest.writelf(4, "\t\t\t<param name=\"B\" type=\"float\"/>");
@@ -820,7 +820,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 		}
 		if (mesh.flags & MESH_HAS_TEX_COORDS) {
 			dest.writelf(4, "<source id=\"mesh_%d_texcoords\">", i);
-			dest.writesf(4, "\t<float_array id=\"mesh_%d_texcoords_array\" count=\"%d\">", i, 2 * mesh.vertices.size());
+			dest.writesf(4, "\t<float_array id=\"mesh_%d_texcoords_array\" count=\"%d\">", i, (s32) (2 * mesh.vertices.size()));
 			for (const Vertex& v : mesh.vertices) {
 				dest.writesf("%.9g %.9g ", v.tex_coord.x, 1.f - v.tex_coord.y);
 			}
@@ -829,7 +829,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 			}
 			dest.writelf("</float_array>");
 			dest.writelf(4, "\t<technique_common>");
-			dest.writelf(4, "\t\t<accessor count=\"%d\" offset=\"0\" source=\"#mesh_%d_texcoords_array\" stride=\"2\">", mesh.vertices.size(), i);
+			dest.writelf(4, "\t\t<accessor count=\"%d\" offset=\"0\" source=\"#mesh_%d_texcoords_array\" stride=\"2\">", (s32) mesh.vertices.size(), i);
 			dest.writelf(4, "\t\t\t<param name=\"S\" type=\"float\"/>");
 			dest.writelf(4, "\t\t\t<param name=\"T\" type=\"float\"/>");
 			dest.writelf(4, "\t\t</accessor>");
@@ -842,7 +842,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 		if (mesh.flags & MESH_HAS_QUADS) {
 			for (s32 j = 0; j < (s32) mesh.submeshes.size(); j++) {
 				const SubMesh& submesh = mesh.submeshes[j];
-				dest.writelf(4, "<polylist count=\"%d\" material=\"material_symbol_%d\">", submesh.faces.size(), j);
+				dest.writelf(4, "<polylist count=\"%d\" material=\"material_symbol_%d\">", (s32) submesh.faces.size(), j);
 				dest.writelf(4, "\t<input semantic=\"VERTEX\" source=\"#mesh_%d_vertices\" offset=\"0\"/>", i);
 				if (mesh.flags & MESH_HAS_NORMALS) {
 					dest.writelf(4, "\t<input semantic=\"NORMAL\" source=\"#mesh_%d_normals\" offset=\"0\"/>", i);
@@ -879,7 +879,7 @@ static void write_geometries(OutBuffer dest, const std::vector<Mesh>& meshes)
 		} else {
 			for (s32 j = 0; j < (s32) mesh.submeshes.size(); j++) {
 				const SubMesh& submesh = mesh.submeshes[j];
-				dest.writelf(4, "<triangles count=\"%d\" material=\"material_symbol_%d\">", submesh.faces.size(), j);
+				dest.writelf(4, "<triangles count=\"%d\" material=\"material_symbol_%d\">", (s32) submesh.faces.size(), j);
 				dest.writelf(4, "\t<input semantic=\"VERTEX\" source=\"#mesh_%d_vertices\" offset=\"0\"/>", i);
 				if (mesh.flags & MESH_HAS_NORMALS) {
 					dest.writelf(4, "\t<input semantic=\"NORMAL\" source=\"#mesh_%d_normals\" offset=\"0\"/>", i);
@@ -951,7 +951,7 @@ static void write_controllers(
 		}
 		dest.writelf("</float_array>");
 		dest.writelf(4, "\t<technique_common>");
-		dest.writelf(4, "\t\t<accessor source=\"#%s_inv_bind_mats_array\" count=\"%d\" stride=\"16\">", mesh.name.c_str(), joints.size());
+		dest.writelf(4, "\t\t<accessor source=\"#%s_inv_bind_mats_array\" count=\"%d\" stride=\"16\">", mesh.name.c_str(), (s32) joints.size());
 		dest.writelf(4, "\t\t\t<param name=\"TRANSFORM\" type=\"float4x4\"/>");
 		dest.writelf(4, "\t\t</accessor>");
 		dest.writelf(4, "\t</technique_common>");
@@ -960,7 +960,7 @@ static void write_controllers(
 		dest.writelf(4, "\t<input semantic=\"JOINT\" source=\"#%s_joints\"/>", mesh.name.c_str());
 		dest.writelf(4, "\t<input semantic=\"INV_BIND_MATRIX\" source=\"#%s_inv_bind_mats\"/>", mesh.name.c_str());
 		dest.writelf(4, "</joints>");
-		dest.writelf(4, "<vertex_weights count=\"%d\">", mesh.vertices.size());
+		dest.writelf(4, "<vertex_weights count=\"%d\">", (s32) mesh.vertices.size());
 		dest.writelf(4, "\t<input semantic=\"JOINT\" source=\"#%s_joints\" offset=\"0\"/>", mesh.name.c_str());
 		dest.writelf(4, "\t<input semantic=\"WEIGHT\" source=\"#%s_weights\" offset=\"1\"/>", mesh.name.c_str());
 		dest.writesf(4, "\t<vcount>");

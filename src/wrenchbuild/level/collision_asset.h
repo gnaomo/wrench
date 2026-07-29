@@ -20,10 +20,12 @@
 #define WRENCHBUILD_LEVEL_COLLISION_ASSET_H
 
 #include <core/collada.h>
+#include <core/gltf.h>
 #include <engine/collision.h>
 #include <instancemgr/gameplay.h>
 #include <wrenchbuild/asset_unpacker.h>
 #include <wrenchbuild/asset_packer.h>
+#include <wrenchbuild/level/collision_mesh.h>
 
 void pack_level_collision(
 	OutputStream& dest,

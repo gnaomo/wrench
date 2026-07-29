@@ -21,10 +21,12 @@
 #include <mutex>
 #include <thread>
 #include <assetmgr/asset_path_gen.h>
+#include <toolwads/wads.h>
 #include <gui/gui.h>
 #include <editor/app.h>
 #include <editor/instanced_collision_recovery.h>
 #include <editor/gui/asset_selector.h>
+#include <wrenchbuild/level/collision_mesh.h>
 
 class CollisionFixerThread
 {
@@ -456,10 +458,21 @@ static std::string write_instanced_collision_for_class_of_type(
 		collision_asset = &asset.static_collision();
 	}
 	
+	verify_fatal(collision_scene.meshes.size() == 1);
+	
+	auto [gltf, scene] = GLTF::create_default_scene(get_versioned_application_name("Wrench Editor"));
+	GLTF::Mesh gltf_mesh = native_mesh_to_gltf_mesh(gltf, collision_scene.meshes[0], collision_scene.materials);
+	scene->nodes.emplace_back((s32) gltf.nodes.size());
+	GLTF::Node& node = gltf.nodes.emplace_back();
+	node.name = gltf_mesh.name;
+	node.mesh = (s32) gltf.meshes.size();
+	gltf.meshes.emplace_back(std::move(gltf_mesh));
+	std::vector<u8> glb = GLTF::write_glb(gltf);
+	
 	MeshAsset& mesh_asset = collision_asset->mesh();
-	std::vector<u8> collada = write_collada(collision_scene);
 	mesh_asset.set_name("collision");
-	FileReference src = mesh_asset.file().write_text_file("recovered_collision.dae", (char*) collada.data());
+	auto [stream, src] = mesh_asset.file().open_binary_file_for_writing("recovered_collision.glb");
+	stream->write_v(glb);
 	mesh_asset.set_src(src);
 	message += stringf("Written file: %s\n", src.path.string().c_str());
 	

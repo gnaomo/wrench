@@ -29,8 +29,7 @@
 struct ColChunk
 {
 	ChunkAsset* asset;
-	ColladaScene collision_scene;
-	Mesh* collision_mesh;
+	Mesh collision_mesh;
 };
 
 struct ColInstance

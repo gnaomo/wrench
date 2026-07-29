@@ -10,6 +10,7 @@ add_executable(wrencheditor
 	level.cpp
 	editor.cpp
 	instanced_collision_recovery.cpp
+	../wrenchbuild/level/collision_mesh.cpp
 	gui/editor_gui.cpp
 	gui/view_3d.cpp
 	gui/inspector.cpp

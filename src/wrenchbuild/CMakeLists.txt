@@ -38,6 +38,7 @@ add_executable(wrenchbuild
 	level/level_audio_wad.cpp
 	level/level_scene_wad.cpp
 	level/collision_asset.cpp
+	level/collision_mesh.cpp
 	level/sky_asset.cpp
 	level/tfrags_asset.cpp
 	level/occlusion_asset.cpp

@@ -20,11 +20,14 @@
 
 #include <core/png.h>
 #include <assetmgr/asset_path_gen.h>
+#include <assetmgr/asset_util.h>
 #include <assetmgr/material_asset.h>
 #include <instancemgr/gameplay.h>
 #include <toolwads/wads.h>
 #include <gui/render_mesh.h>
 #include <editor/app.h>
+#include <engine/collision.h>
+#include <wrenchbuild/level/collision_mesh.h>
 
 Level::Level() {}
 
@@ -51,14 +54,12 @@ void Level::read(LevelAsset& asset, Game g)
 		
 		const CollisionAsset& collision_asset = chunk_asset.get_collision().as<CollisionAsset>();
 		
-		const MeshAsset& collision_mesh_asset = chunk_asset.get_collision().as<CollisionAsset>().get_mesh();
-		std::string collision_xml = collision_mesh_asset.src().read_text_file();
-		ColladaScene collision_scene = read_collada((char*) collision_xml.data());
-		const Mesh* collision_mesh = collision_scene.find_mesh(collision_mesh_asset.name());
-		if (collision_mesh) {
-			chunk.collision = upload_mesh(*collision_mesh, true);
+		Mesh collision_mesh;
+		append_collision(collision_mesh, collision_asset, glm::mat4(1.f));
+		if (!collision_mesh.vertices.empty()) {
+			chunk.collision = upload_mesh(collision_mesh, true);
 		}
-		chunk.collision_materials = upload_collada_materials(collision_scene.materials, {});
+		chunk.collision_materials = upload_collada_materials(create_collision_materials(), {});
 		
 		std::vector<FileReference> hero_group_refs;
 		std::vector<std::string> hero_group_names;
@@ -67,17 +68,18 @@ void Level::read(LevelAsset& asset, Game g)
 			hero_group_names.emplace_back(mesh.name());
 		});
 		
-		std::vector<std::unique_ptr<ColladaScene>> hero_group_owners;
-		std::vector<ColladaScene*> hero_group_scenes = read_collada_files(hero_group_owners, hero_group_refs);
-		for (size_t i = 0; i < hero_group_scenes.size(); i++) {
-			Mesh* mesh = hero_group_scenes[i]->find_mesh(hero_group_names[i]);
-			if (mesh) {
+		std::vector<std::unique_ptr<GLTF::ModelFile>> hero_group_owners;
+		std::vector<GLTF::ModelFile*> hero_group_gltfs = read_glb_files(hero_group_owners, hero_group_refs);
+		for (size_t i = 0; i < hero_group_gltfs.size(); i++) {
+			GLTF::Node* node = GLTF::lookup_node(*hero_group_gltfs[i], hero_group_names[i].c_str());
+			if (node && node->mesh.has_value()) {
+				Mesh hero_mesh = gltf_mesh_to_native_mesh(hero_group_gltfs[i]->meshes.at(*node->mesh));
 				// Hero collision doesn't have a type, so make it all the same
 				// colour.
-				for (SubMesh& submesh : mesh->submeshes) {
+				for (SubMesh& submesh : hero_mesh.submeshes) {
 					submesh.material = 0;
 				}
-				chunk.hero_collision.emplace_back(upload_mesh(*mesh, true));
+				chunk.hero_collision.emplace_back(upload_mesh(hero_mesh, true));
 			}
 		}
 		

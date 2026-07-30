@@ -78,6 +78,27 @@ describes the commits as of when they landed, not the current tree):
 - `src/editor/CMakeLists.txt` includes `collision_mesh.cpp` via a relative
   path into `../wrenchbuild/level/`, rather than that file being part of a
   shared library both executables link against.
+- `core/gltf.h`/`.cpp`, `wrenchbuild/level/collision_mesh.h`/`.cpp`,
+  `core/collada.h`/`.cpp`, `wrenchbuild/level/collision_asset.cpp`,
+  `editor/gui/collision_fixer.cpp` (built and functionally verified by a
+  human -- opens, extracts, level editor works, repacking an ISO works):
+  `native_mesh_to_gltf_mesh()`/`gltf_mesh_to_native_mesh()` moved out of
+  `collision_mesh.cpp` into `core/gltf.h`/`.cpp` (inside `namespace GLTF`,
+  relying on argument-dependent lookup so call sites didn't need explicit
+  qualification), so ties/tfrags can reuse them later without depending on
+  collision-specific code. Along the way, `native_mesh_to_gltf_mesh`'s
+  materials parameter changed from `std::vector<ColladaMaterial>` to plain
+  `std::vector<Material>`, so `core/gltf.h` doesn't pick up a dependency on
+  `core/collada.h` (which is slated for deletion once ties/tfrags migrate).
+  A new `to_materials()` helper in `core/collada.h`/`.cpp` bridges
+  `ColladaScene::materials` to the plain type at the two call sites that
+  still produce `ColladaMaterial`. `collision_mesh.h`/`.cpp` now only
+  contain the collision-specific `append_collision()` and no longer
+  include `core/collada.h` at all. One shadowing bug was introduced and
+  fixed during this change: a local `std::vector<Material> materials` in
+  `unpack_collision_asset()` collided with a pre-existing
+  `CollectionAsset& materials` later in the same function; renamed to
+  `gltf_materials`.
 - Separately from the diff above: the `thirdparty/zlib` submodule had a
   tracked file (`zconf.h`) missing from its working directory, unrelated to
   any of the changes above and with no clear cause found. It has been
@@ -137,8 +158,7 @@ In no particular order:
 		- Error out if the files are too big to work
 - Collsion System
 	- ~~Recover instanced collision~~
-	- Collision meshes are written/read as glTF instead of COLLADA in an
-	  uncommitted working-tree change — see "Uncommitted working-tree
-	  changes" above for details.
+	- Collision meshes are written/read as glTF instead of COLLADA -- see
+	  "Recently committed changes" above for details.
 - Level Packing
 	- ~~Don't unpack the tfrag block for chunk 0 twice~~

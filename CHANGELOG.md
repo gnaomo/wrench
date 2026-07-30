@@ -39,6 +39,12 @@
 - Default `CMAKE_BUILD_TYPE` to `RelWithDebInfo` when unspecified, and
   pass `-rdynamic` on Linux/macOS so the crash handler above can produce
   symbolised backtraces.
+- Generalised the collision-specific glTF mesh conversion helpers
+  (`native_mesh_to_gltf_mesh`/`gltf_mesh_to_native_mesh`) into shared code
+  in `core/gltf.h`/`.cpp`, so ties and tfrags will be able to reuse them
+  once they're migrated off COLLADA too. No user-visible behaviour change;
+  verified by building and testing (asset extraction, level editor, ISO
+  repacking).
 
 ## v0.6
 

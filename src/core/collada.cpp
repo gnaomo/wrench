@@ -642,6 +642,18 @@ void map_lhs_material_indices_to_rhs_list(ColladaScene& scene, const std::vector
 	}
 }
 
+std::vector<Material> to_materials(const std::vector<ColladaMaterial>& materials)
+{
+	std::vector<Material> result;
+	result.reserve(materials.size());
+	for (const ColladaMaterial& material : materials) {
+		Material& dest = result.emplace_back();
+		dest.name = material.name;
+		dest.surface = material.surface;
+	}
+	return result;
+}
+
 std::vector<u8> write_collada(const ColladaScene& scene)
 {
 	std::vector<u8> vec;

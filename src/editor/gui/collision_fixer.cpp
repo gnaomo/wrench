@@ -461,7 +461,7 @@ static std::string write_instanced_collision_for_class_of_type(
 	verify_fatal(collision_scene.meshes.size() == 1);
 	
 	auto [gltf, scene] = GLTF::create_default_scene(get_versioned_application_name("Wrench Editor"));
-	GLTF::Mesh gltf_mesh = native_mesh_to_gltf_mesh(gltf, collision_scene.meshes[0], collision_scene.materials);
+	GLTF::Mesh gltf_mesh = native_mesh_to_gltf_mesh(gltf, collision_scene.meshes[0], to_materials(collision_scene.materials));
 	scene->nodes.emplace_back((s32) gltf.nodes.size());
 	GLTF::Node& node = gltf.nodes.emplace_back();
 	node.name = gltf_mesh.name;

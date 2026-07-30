@@ -48,9 +48,10 @@ static void unpack_collision_asset(CollisionAsset& dest, InputStream& src, Build
 	// The main collision mesh is always output.scene.meshes[0]; every hero
 	// group mesh that follows it gets its own node in the same file, mirroring
 	// how sky shells share a single .glb.
+	std::vector<Material> gltf_materials = to_materials(output.scene.materials);
 	std::vector<GLTF::Mesh> converted_meshes;
 	for (const Mesh& native_mesh : output.scene.meshes) {
-		converted_meshes.emplace_back(native_mesh_to_gltf_mesh(gltf, native_mesh, output.scene.materials));
+		converted_meshes.emplace_back(native_mesh_to_gltf_mesh(gltf, native_mesh, gltf_materials));
 	}
 	for (size_t i = 0; i < converted_meshes.size(); i++) {
 		scene->nodes.emplace_back((s32) gltf.nodes.size());

@@ -229,6 +229,29 @@ void fix_winding_orders_of_triangles_based_on_normals(Mesh& mesh);
 // Rewrite material indices so they point into the provided materials array.
 void map_gltf_materials_to_wrench_materials(ModelFile& gltf, const std::vector<::Material>& materials);
 
+// Converts a plain triangulated GLTF::Mesh (e.g. a hero collision group) into
+// a plain (native) Mesh, without any material remapping. This was originally
+// collision-specific (collision_mesh.h/.cpp) but the conversion itself has no
+// collision-specific logic, so it's shared here for reuse by other asset
+// types migrating off COLLADA.
+::Mesh gltf_mesh_to_native_mesh(const Mesh& mesh);
+
+// Converts a plain (native) Mesh -- which may contain quads -- into a
+// GLTF::Mesh for serialisation to a .glb file, triangulating any quads and
+// adding/reusing materials in gltf as required.
+//
+// glTF has no native quad primitive mode, so quads are split into two
+// triangles here. This is a one-way simplification: once a mesh has been
+// round-tripped through glTF, faces that used to be packed as quads will
+// always be rebuilt as pairs of triangles instead. For collision meshes that
+// only costs a little storage efficiency (see reduce_quads_to_tris/
+// optimise_collision in engine/collision.cpp) and doesn't change in-game
+// collision behaviour, since the octree accepts either representation --
+// callers for other asset types should check whether an analogous packed
+// format assumption holds before assuming the same is true for them.
+Mesh native_mesh_to_gltf_mesh(
+	ModelFile& gltf, const ::Mesh& mesh, const std::vector<::Material>& materials);
+
 // When splitting a mesh up into packets, this is used to generate a new vertex
 // buffer for each output mesh, and optionally to rewrite the index buffers of
 // the mesh primitives appropriately.

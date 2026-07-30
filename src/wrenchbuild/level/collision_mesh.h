@@ -16,20 +16,23 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// Conversions between the native (ColladaScene-style) Mesh representation
-// used by engine/collision.cpp and the GLTF::Mesh representation used to
-// serialise collision assets to .glb files. These are used both by the asset
-// (un)packer (wrenchbuild) and by tools that need to load or author
-// collision data directly, such as the level editor and the instanced
-// collision recovery tool (wrencheditor) -- hence being kept in a file with
-// minimal dependencies, separate from collision_asset.cpp, so it can be
-// compiled into both executables without dragging in the asset (un)packer
-// machinery.
+// Collision-specific glue between the native (ColladaScene-style) Mesh
+// representation used by engine/collision.cpp and the .glb-format
+// CollisionAsset. Used both by the asset (un)packer (wrenchbuild) and by
+// tools that need to load or author collision data directly, such as the
+// level editor and the instanced collision recovery tool (wrencheditor) --
+// hence being kept in a file with minimal dependencies, separate from
+// collision_asset.cpp, so it can be compiled into both executables without
+// dragging in the asset (un)packer machinery.
+//
+// The generic Mesh <-> GLTF::Mesh conversion helpers that used to live here
+// (native_mesh_to_gltf_mesh/gltf_mesh_to_native_mesh) have moved to
+// core/gltf.h, since they have no collision-specific logic and other asset
+// types migrating off COLLADA (ties, tfrags) will want to reuse them too.
 
 #ifndef WRENCHBUILD_LEVEL_COLLISION_MESH_H
 #define WRENCHBUILD_LEVEL_COLLISION_MESH_H
 
-#include <core/collada.h>
 #include <core/gltf.h>
 #include <assetmgr/asset_types.h>
 
@@ -38,15 +41,5 @@
 // asset's CollisionMaterialAsset children, and appends it to dest (having
 // first applied matrix to every vertex).
 void append_collision(Mesh& dest, const CollisionAsset& src, const glm::mat4& matrix);
-
-// Converts a plain triangulated GLTF::Mesh (e.g. a hero collision group) into
-// a native Mesh, without any material remapping.
-Mesh gltf_mesh_to_native_mesh(const GLTF::Mesh& mesh);
-
-// Converts a native (ColladaScene-style) collision mesh -- which may contain
-// quads -- into a GLTF::Mesh for serialisation to a .glb file, triangulating
-// any quads and adding/reusing materials in gltf as required.
-GLTF::Mesh native_mesh_to_gltf_mesh(
-	GLTF::ModelFile& gltf, const Mesh& mesh, const std::vector<ColladaMaterial>& materials);
 
 #endif

@@ -69,6 +69,12 @@ ColladaScene read_collada(char* src);
 // Rewrite SubMesh::material indices so they index into the passed materials array.
 void map_lhs_material_indices_to_rhs_list(ColladaScene& scene, const std::vector<Material>& materials);
 
+// Strip the COLLADA-specific fields (currently just collision_id) off a list
+// of ColladaMaterial objects, e.g. for passing to code that only deals in
+// plain Material objects, such as the shared glTF mesh converters in
+// core/gltf.h.
+std::vector<Material> to_materials(const std::vector<ColladaMaterial>& materials);
+
 // Convert a ColladaScene structure into an XML document.
 std::vector<u8> write_collada(const ColladaScene& scene);
 

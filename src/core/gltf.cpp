@@ -446,6 +446,86 @@ void map_gltf_materials_to_wrench_materials(ModelFile& gltf, const std::vector<:
 	}
 }
 
+// See the comment on native_mesh_to_gltf_mesh's declaration in gltf.h -- glTF
+// has no native quad primitive mode, so quads are split into two triangles
+// here. This is a one-way simplification: once a mesh has been round-tripped
+// through the new format, faces that used to be packed as quads will always
+// be rebuilt as pairs of triangles instead. For collision meshes that only
+// costs a little bit of storage efficiency (see reduce_quads_to_tris/
+// optimise_collision in engine/collision.cpp) -- it does not change the
+// collision behaviour in game, since the octree accepts either
+// representation.
+Mesh native_mesh_to_gltf_mesh(
+	ModelFile& gltf, const ::Mesh& mesh, const std::vector<::Material>& materials)
+{
+	Mesh gltf_mesh;
+	gltf_mesh.name = mesh.name;
+	gltf_mesh.vertices = mesh.vertices;
+	
+	for (const SubMesh& submesh : mesh.submeshes) {
+		if (submesh.faces.empty()) {
+			continue;
+		}
+		
+		const std::string& material_name = materials.at(submesh.material).name;
+		
+		s32 material_index = -1;
+		for (size_t i = 0; i < gltf.materials.size(); i++) {
+			if (gltf.materials[i].name == material_name) {
+				material_index = (s32) i;
+				break;
+			}
+		}
+		if (material_index == -1) {
+			material_index = (s32) gltf.materials.size();
+			Material& material = gltf.materials.emplace_back();
+			material.name = material_name;
+		}
+		
+		MeshPrimitive& primitive = gltf_mesh.primitives.emplace_back();
+		primitive.attributes_bitfield = POSITION;
+		primitive.mode = TRIANGLES;
+		primitive.material = material_index;
+		
+		for (const Face& face : submesh.faces) {
+			primitive.indices.emplace_back(face.v0);
+			primitive.indices.emplace_back(face.v1);
+			primitive.indices.emplace_back(face.v2);
+			if (face.is_quad()) {
+				primitive.indices.emplace_back(face.v0);
+				primitive.indices.emplace_back(face.v2);
+				primitive.indices.emplace_back(face.v3);
+			}
+		}
+	}
+	
+	return gltf_mesh;
+}
+
+// The inverse of native_mesh_to_gltf_mesh, minus material handling -- used for
+// e.g. hero collision groups, where the material assigned to each face
+// doesn't matter (see build_hero_collision_groups in engine/collision.cpp).
+::Mesh gltf_mesh_to_native_mesh(const Mesh& mesh)
+{
+	::Mesh native_mesh;
+	native_mesh.name = mesh.name.has_value() ? *mesh.name : "";
+	native_mesh.vertices = mesh.vertices;
+	
+	for (const MeshPrimitive& primitive : mesh.primitives) {
+		verify(!primitive.mode.has_value() || *primitive.mode == TRIANGLES,
+			"Meshes passed to gltf_mesh_to_native_mesh must be triangulated.");
+		verify(primitive.indices.size() % 3 == 0,
+			"Mesh passed to gltf_mesh_to_native_mesh has a non-triangular index count.");
+		
+		SubMesh& submesh = native_mesh.submeshes.emplace_back();
+		for (size_t i = 0; i < primitive.indices.size(); i += 3) {
+			submesh.faces.emplace_back(primitive.indices[i + 0], primitive.indices[i + 1], primitive.indices[i + 2]);
+		}
+	}
+	
+	return native_mesh;
+}
+
 // When splitting a mesh up into submeshes, this is used to generate a new
 // vertex buffer for each output mesh, and rewrite the index buffers of the
 // mesh primitives appropriately.

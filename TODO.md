@@ -159,6 +159,55 @@ describes the commits as of when they landed, not the current tree):
   - Not persisted across relaunches (no other `RenderSettings` flag is
     persisted either, by the commit's own note, so this follows existing
     precedent rather than being an oversight).
+- `wrenchbuild/level/tfrags_asset.cpp`, `editor/level.cpp` (built and
+  functionally verified by a human -- ISO extracted, many levels opened
+  and checked in the editor with tfrag geometry/textures rendering
+  correctly, ISO repacked): `unpack_tfrags()`
+  now writes tfrag meshes out as
+  `mesh.glb` via the shared `native_mesh_to_gltf_mesh()` helper instead of
+  `mesh.dae` via `write_collada()`, mirroring the tie migration above.
+  `recover_tfrags()` itself is unchanged and still returns a `ColladaScene`
+  internally. Added a guard for the case where `recover_tfrags()` produces
+  zero meshes (happens when a chunk's `Tfrags::fragments` is empty) --
+  `scene.meshes.at(0)` would otherwise throw; now `editor_mesh` is simply
+  left unset, matching how `Level::read`/`pack_tfrags` already treat a
+  `TfragsAsset` with no editor mesh. This is unpack-only: `pack_tfrags()`
+  still calls `verify_not_reached_fatal("Not yet implemented.")` when the
+  source isn't already a binary asset, unrelated to this change.
+  
+  The tfrag-loading block in `Level::read` (`editor/level.cpp`) was
+  rewritten the same way as `load_tie_editor_class` -- `GLTF::read_glb`/
+  `GLTF::lookup_node` instead of `read_collada`/`ColladaScene::find_mesh`,
+  `upload_gltf_mesh`/`upload_materials` instead of `upload_mesh`/
+  `upload_collada_materials`. Found and fixed an ordering issue along the
+  way: the old code called `upload_mesh()` on the tfrag mesh *before*
+  remapping its material indices (`map_lhs_material_indices_to_rhs_list`),
+  so the uploaded mesh's material indices were never actually the remapped
+  ones. In practice this was harmless -- `recover_tfrags()` numbers
+  materials by texture id and `unpack_level_materials()` names each
+  `MaterialAsset` the same way, so the "remap" was always the identity
+  mapping -- but the new code remaps before uploading regardless, matching
+  the order used by the moby/tie/shrub loaders in the same file.
+  
+  Separately, found (not introduced by this change) that
+  `wrenchvis/wrenchvis.cpp` -- a standalone occlusion-generation CLI tool,
+  distinct from `wrenchbuild`/`wrencheditor` -- has its own independent
+  `read_collada` call sites in `load_moby_classes` and `load_tie_classes`,
+  which weren't part of the roadmap's item-5 inventory of call sites
+  blocking `core/collada.cpp`'s eventual deletion. `load_moby_classes` has
+  been broken (reads binary `.glb` as if it were COLLADA XML) since moby
+  models moved to glTF in v0.6, entirely unrelated to any work in this or
+  the previous session. `load_tie_classes` broke as a consequence of the
+  tie migration above. `wrenchvis`'s tfrag loading (`load_chunks`) reads
+  straight from the binary asset rather than a file, so it was never
+  affected by any of this. Both `load_moby_classes`/`load_tie_classes`
+  have been fixed the same way (new shared `load_editor_mesh_for_occlusion`
+  helper: `GLTF::read_glb`/`GLTF::lookup_node`/`gltf_mesh_to_native_mesh`,
+  materials skipped entirely since occlusion computation doesn't need
+  them). Unlike the two files above, `wrenchvis.cpp` is a separate
+  executable the editor/build tools never invoke, so the human build/test
+  pass didn't exercise it -- confirmed to compile as part of the overall
+  build, but not functionally run/tested by anyone yet.
 - Separately from the diff above: the `thirdparty/zlib` submodule had a
   tracked file (`zconf.h`) missing from its working directory, unrelated to
   any of the changes above and with no clear cause found. It has been
@@ -176,6 +225,10 @@ In no particular order:
 - Tfrag Model Packing
 	- ~~Recover original tfaces~~
 		- ~~Possibly compare different LOD levels to determine which strips are part of which tface~~
+	- ~~Migrate tfrag mesh unpacking from COLLADA to glTF~~ (unpack side
+	  only, built and functionally verified -- see "Recently committed
+	  changes" above; `pack_tfrags()`'s "not yet implemented" path is
+	  untouched)
 	- Figure out how tfaces should be represented in the source format
 	- Build new tfrags
 	- Make sure to pad the tfrag blocks in the level core and the chunks to the same size

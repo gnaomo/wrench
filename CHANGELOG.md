@@ -58,6 +58,17 @@
   menu to drive it, replacing the previous all-or-nothing collision
   toggle for this use case (the toggle itself is unchanged). Verified
   working by a human tester.
+- Use glTF (.glb) to store tfrag models instead of COLLADA, for the
+  unpack side and the level editor (building/repacking tfrags from source
+  is not yet implemented, unchanged from before). Also fixed a
+  standalone occlusion-generation tool (`wrenchvis`) that had its own,
+  separate code path for reading tie and moby meshes via COLLADA -- the
+  tie one broke as a result of the tie glTF migration above, and the moby
+  one had already been broken since moby models moved to glTF several
+  releases ago; both are fixed now. Verified working by a human tester
+  (tfrag geometry/textures); the `wrenchvis` fix specifically wasn't
+  exercised by that test, since it's a standalone tool not invoked by the
+  editor or build tools, but it does compile as part of the normal build.
 
 ## v0.6
 

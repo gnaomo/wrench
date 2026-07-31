@@ -39,24 +39,41 @@ Headline facts that affect ordering below (see `TODO.md` for full detail):
   The **pack** side (`pack_tie_class`) still stubs out with
   `verify_not_reached_fatal("Not yet implemented.")`, and `write_tie_class()`
   in `engine/tie.cpp` is itself still an empty stub, so full tie building
-  remains gated on the Phase 2 tface work. Tfrags are **not yet** migrated
-  — still stubs out `pack()` with `verify_not_reached_fatal("Not yet
-  implemented.")` and still calls `write_collada()`.
+  remains gated on the Phase 2 tface work. Tfrags are **migrated the same
+  way, not yet built/tested**: `unpack_tfrags` in `tfrags_asset.cpp` writes
+  `mesh.glb` instead of `mesh.dae`, and the tfrag-loading block in
+  `editor/level.cpp`'s `Level::read` was rewritten the same way as
+  `load_tie_editor_class`. `pack_tfrags()`'s `verify_not_reached_fatal("Not
+  yet implemented.")` path is untouched.
   
-  While doing this, found and fixed a real gap in the shared helper itself:
-  `native_mesh_to_gltf_mesh()` (`core/gltf.h`/`.cpp`) previously only ever
-  set the `POSITION` attribute bit on output primitives, silently dropping
-  normals/vertex colours/texture coordinates on any mesh that had them.
-  This was invisible for collision meshes (which never set those mesh
-  flags) but would have silently discarded tie UVs on the round trip
-  through the `.glb` file. It now sets `NORMAL`/`COLOR_0`/`TEXCOORD_0`
-  based on the source mesh's `MESH_HAS_NORMALS`/`MESH_HAS_VERTEX_COLOURS`/
-  `MESH_HAS_TEX_COORDS` flags, mirroring what the old COLLADA writer did.
-  Worth keeping in mind for the tfrags migration too, since tfrags also
-  carry texture coordinates.
+  While doing the tie migration, found and fixed a real gap in the shared
+  helper itself: `native_mesh_to_gltf_mesh()` (`core/gltf.h`/`.cpp`)
+  previously only ever set the `POSITION` attribute bit on output
+  primitives, silently dropping normals/vertex colours/texture coordinates
+  on any mesh that had them. This was invisible for collision meshes
+  (which never set those mesh flags) but would have silently discarded tie
+  UVs on the round trip through the `.glb` file. It now sets
+  `NORMAL`/`COLOR_0`/`TEXCOORD_0` based on the source mesh's
+  `MESH_HAS_NORMALS`/`MESH_HAS_VERTEX_COLOURS`/`MESH_HAS_TEX_COORDS` flags,
+  mirroring what the old COLLADA writer did -- this fix was already in
+  place by the time tfrags was migrated, so tfrag UVs/vertex colours
+  weren't at risk of the same silent drop.
   
-  Built and functionally tested by the user: ISO extracted, many levels
-  opened and checked in the editor, ISO repacked -- all working.
+  While doing the tfrags migration, found (not caused by it) that a
+  standalone occlusion-generation tool, `wrenchvis`, has its own,
+  independent `read_collada` call sites for moby and tie meshes -- outside
+  the item-5 inventory below. Its moby loader has been broken since moby
+  moved to glTF in v0.6 (unrelated to any of this work); its tie loader
+  broke as a consequence of the tie migration above. Both fixed the same
+  way (see `TODO.md`).
+  
+  Tie migration built and functionally tested by the user: ISO extracted,
+  many levels opened and checked in the editor, ISO repacked -- all
+  working. Tfrags migration also built and functionally tested by the
+  user the same way (tfrag geometry/textures specifically checked). The
+  `wrenchvis` fix wasn't exercised by that test (it's a separate
+  executable the editor/build tools never invoke), but compiles as part
+  of the normal build.
 - Moby's matrix/tristrip split hasn't been started.
 - Of the ~94 `fs::path` uses in `src/assetmgr`, 2 call sites
   (`enumerate_source_files` in `asset.cpp`/`zipped_asset_bank.cpp`) are
@@ -150,29 +167,56 @@ the WIP).
    Built and functionally tested by the user: extracted the ISO, opened and
    checked many levels in the editor (tie meshes/textures render correctly),
    and repacked the ISO successfully.
-4. Migrate **tfrags** off COLLADA the same way (`tfrags_asset.cpp`) — not
-   started. Do this *together with* the tface source-representation design
-   (Phase 2, item 6), since the glTF file is where that representation
-   will live (e.g. mesh extras/custom attributes). Note: the collision
-   migration's quad→triangle tradeoff (glTF has no native quad primitive,
-   so quads become two triangles and don't reconstruct on the way back) is
-   a property of glTF itself, not something specific to collision — it'll
-   recur here and for ties, so it's worth deciding once whether that's
-   acceptable rather than re-litigating it per asset type. For collision
-   specifically this isn't just a file-size concern: per-octant face count
-   roughly doubles for quad-heavy geometry, which feeds a hard `verify()`
-   that aborts the whole build rather than degrading gracefully (see
-   `TODO.md` for the specifics and why it's unlikely in practice). Worth
-   checking whether tfrags/ties have an analogous fixed-size packed field
-   that the same doubling could stress, before assuming this tradeoff is
-   free elsewhere too.
+4. Migrate **tfrags** off COLLADA the same way (`tfrags_asset.cpp`) —
+   **unpack side done and verified; pack side still blocked.**
+   `unpack_tfrags` converts the `ColladaScene` produced by
+   `recover_tfrags(tfrags, TFRAG_NO_FLAGS)` into a `GLTF::Mesh` via
+   `native_mesh_to_gltf_mesh()` and writes `mesh.glb` instead of
+   `mesh.dae`, mirroring item 3. Added a guard for the empty-fragments
+   case (`recover_tfrags` produces zero meshes when a chunk has none,
+   which would otherwise throw on `scene.meshes.at(0)`) by leaving
+   `editor_mesh` unset, matching how the rest of the codebase already
+   treats a `TfragsAsset` with no editor mesh. The tfrag-loading block in
+   `editor/level.cpp`'s `Level::read` was rewritten the same way as
+   `load_tie_editor_class` in item 3. Along the way, found and fixed an
+   ordering bug in that same block: the old code uploaded the tfrag mesh
+   *before* remapping its material indices, so the remap never actually
+   applied to what got uploaded -- harmless in practice (the remap turns
+   out to always be the identity mapping for tfrags, since both sides
+   number materials by texture id), but fixed to remap-before-upload
+   regardless, matching moby/tie/shrub. `pack_tfrags()`'s
+   `verify_not_reached_fatal("Not yet implemented.")` path (taken when the
+   source isn't already a binary asset) is untouched by any of this.
+   
+   Separately, found `wrenchvis` (a standalone occlusion-generation CLI
+   tool, distinct from `wrenchbuild`/`wrencheditor`) has its own
+   independent `read_collada` call sites for moby and tie meshes in
+   `load_moby_classes`/`load_tie_classes` -- not part of this item's scope
+   but newly relevant to item 5's inventory (see below). Its tfrag loader
+   (`load_chunks`) reads straight from the binary asset, so it was never
+   affected by any of this. Fixed both loaders the same way (new shared
+   `load_editor_mesh_for_occlusion` helper using `GLTF::read_glb`/
+   `gltf_mesh_to_native_mesh`, no materials needed since occlusion doesn't
+   use them).
+   
+   Built and functionally tested by the user: extracted the ISO, opened
+   and checked many levels in the editor (tfrag geometry/textures render
+   correctly), and repacked the ISO successfully. The `wrenchvis` fix
+   wasn't exercised by that test since it's a separate executable never
+   invoked by the editor or build tools, but compiles as part of the
+   normal build.
 5. Once ties, tfrags, and the two `editor/level.cpp` call sites, and the
    two `wrenchbuild/main.cpp` call sites no longer call `read_collada`/
    `write_collada`, delete `core/collada.cpp/h` entirely (including the
    `to_materials()`/`ColladaMaterial`/`ColladaScene` types added/used along
    the way — by this point ties/tfrags should no longer need them either).
    This retires the whole bug class you just hit, rather than patching
-   instances of it. Not started.
+   instances of it. **Inventory updated:** `wrenchvis/wrenchvis.cpp` also
+   has two `read_collada` call sites (`load_moby_classes`/
+   `load_tie_classes`, item 4 above) that block this deletion too and
+   weren't originally accounted for here -- both are now fixed, so this
+   item's blocker list is: tfrags' own `pack()` (item 6/7) plus the two
+   `wrenchbuild/main.cpp` sites. Not started.
 
 *Rationale:* writing new tfrag/tie **build** logic (Phase 2) against a
 format you're about to delete is wasted work. Do the migration first so
@@ -182,7 +226,16 @@ the rebuild code is written once, against glTF.
 6. **Tfrags**: decide the source representation for tfaces (coupled with
    step 4 above — this is really one workstream), then implement full
    tfrag building. This is flagged as the highest-impact item since most
-   core gameplay geometry can't be rebuilt from scratch without it.
+   core gameplay geometry can't be rebuilt from scratch without it. Note:
+   the collision migration's quad→triangle tradeoff (glTF has no native
+   quad primitive, so quads become two triangles on write and don't
+   reconstruct as quads on read) is a property of glTF itself, not
+   something specific to collision — it doesn't matter yet for tfrags
+   (item 4 is unpack-only, nothing round-trips through a packer), but it
+   will once building is implemented here, so it's worth checking whether
+   tfrags have an analogous fixed-size packed field that face-count
+   doubling could stress, the way it does for collision's octant packer
+   (see `TODO.md`), before assuming the tradeoff is free.
 7. **Ties**: apply the same tface-adjacent solution once tfrags prove it
    out — TODO.md itself says ties have "similar issues as the tfrag
    renderer," so solving tfrags first de-risks ties.

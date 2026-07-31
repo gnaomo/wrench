@@ -46,8 +46,10 @@ static void draw_cube_instanced(
 	GLenum cube_mode, const RenderMaterial& material, GLuint inst_buffer, size_t inst_begin, size_t inst_count);
 static void draw_icon_instanced(s32 type, GLuint inst_buffer, size_t inst_begin, size_t inst_count);
 static void draw_mesh(
-	const RenderMesh& mesh, const RenderMaterial* mats, size_t mat_count, const glm::mat4& local_to_world);
-static void draw_mesh_instanced(const RenderMesh& mesh, const RenderMaterial* mats, size_t mat_count, GLuint inst_buffer, size_t inst_begin, size_t inst_count);
+	const RenderMesh& mesh, const RenderMaterial* mats, size_t mat_count, const glm::mat4& local_to_world,
+	const std::array<bool, 256>* hidden_ids = nullptr);
+static void draw_mesh_instanced(const RenderMesh& mesh, const RenderMaterial* mats, size_t mat_count, GLuint inst_buffer, size_t inst_begin, size_t inst_count,
+	const std::array<bool, 256>* hidden_ids = nullptr);
 static Mesh create_fill_cube();
 static Mesh create_line_cube();
 static Mesh create_quad();
@@ -228,7 +230,7 @@ void draw_level(
 		
 		if (settings.draw_collision) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			draw_mesh(chunk.collision, chunk.collision_materials.data(), chunk.collision_materials.size(), glm::mat4(1.f));
+			draw_mesh(chunk.collision, chunk.collision_materials.data(), chunk.collision_materials.size(), glm::mat4(1.f), &settings.hidden_collision_ids);
 		}
 		
 		if (settings.draw_hero_collision) {
@@ -765,7 +767,8 @@ static void draw_mesh(
 	const RenderMesh& mesh,
 	const RenderMaterial* mats,
 	size_t mat_count,
-	const glm::mat4& local_to_world)
+	const glm::mat4& local_to_world,
+	const std::array<bool, 256>* hidden_ids)
 {
 	auto inst = InstanceData(local_to_world, {}, {});
 	inst.colour = glm::vec4(1.f, 1.f, 1.f, 1.f);
@@ -775,7 +778,7 @@ static void draw_mesh(
 	glBindBuffer(GL_ARRAY_BUFFER, inst_buffer.id);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(inst), &inst, GL_STATIC_DRAW);
 	
-	draw_mesh_instanced(mesh, mats, mat_count, inst_buffer.id, 0, 1);
+	draw_mesh_instanced(mesh, mats, mat_count, inst_buffer.id, 0, 1, hidden_ids);
 }
 
 static void draw_mesh_instanced(
@@ -784,7 +787,8 @@ static void draw_mesh_instanced(
 	size_t mat_count,
 	GLuint inst_buffer,
 	size_t inst_begin,
-	size_t inst_count)
+	size_t inst_count,
+	const std::array<bool, 256>* hidden_ids)
 {
 	size_t inst_offset = inst_begin * sizeof(InstanceData);
 	size_t matrix_offset = inst_offset + offsetof(InstanceData, matrix);
@@ -818,6 +822,10 @@ static void draw_mesh_instanced(
 	
 	for (const RenderSubMesh& submesh : mesh.submeshes) {
 		if (submesh.material >= mat_count) {
+			continue;
+		}
+		
+		if (hidden_ids != nullptr && submesh.material < hidden_ids->size() && (*hidden_ids)[submesh.material]) {
 			continue;
 		}
 		

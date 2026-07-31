@@ -41,6 +41,10 @@ struct EditorChunk
 	RenderMesh collision;
 	std::vector<RenderMesh> hero_collision;
 	std::vector<RenderMaterial> collision_materials;
+	// Distinct collision surface ids actually used in this chunk, sorted
+	// ascending. Populated when the chunk is loaded (see Level::read in
+	// level.cpp) and used to drive the collision id legend/filter UI.
+	std::vector<u8> collision_ids_present;
 	RenderMesh tfrags;
 };
 

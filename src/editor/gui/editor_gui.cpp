@@ -31,6 +31,7 @@
 #include <editor/gui/inspector.h>
 #include <editor/gui/asset_selector.h>
 #include <editor/gui/collision_fixer.h>
+#include <editor/gui/collision_legend.h>
 #include <editor/gui/model_preview.h>
 
 struct Layout
@@ -201,6 +202,14 @@ static void menu_bar()
 				ImGui::Checkbox("Areas", &a.render_settings.draw_areas);
 				ImGui::Checkbox("Collision", &a.render_settings.draw_collision);
 				ImGui::Checkbox("Hero Collision", &a.render_settings.draw_hero_collision);
+				if (ImGui::BeginMenu("Collision ids")) {
+					if (Level* lvl = a.get_level()) {
+						draw_collision_id_checkboxes(*lvl, a.render_settings);
+					} else {
+						ImGui::TextDisabled("No level open.");
+					}
+					ImGui::EndMenu();
+				}
 				ImGui::Separator();
 				ImGui::Checkbox("Selected Instance Normals", &a.render_settings.draw_selected_instance_normals);
 				ImGui::EndMenu();

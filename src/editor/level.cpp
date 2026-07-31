@@ -18,6 +18,8 @@
 
 #include "level.h"
 
+#include <algorithm>
+
 #include <core/png.h>
 #include <assetmgr/asset_path_gen.h>
 #include <assetmgr/asset_util.h>
@@ -60,6 +62,19 @@ void Level::read(LevelAsset& asset, Game g)
 			chunk.collision = upload_mesh(collision_mesh, true);
 		}
 		chunk.collision_materials = upload_collada_materials(create_collision_materials(), {});
+		
+		// Collect the distinct collision surface ids used in this chunk so the
+		// collision id legend/filter UI knows what to list without having to
+		// scan all 256 possible ids.
+		for (const SubMesh& submesh : collision_mesh.submeshes) {
+			if (submesh.material >= 0 && submesh.material < 256) {
+				chunk.collision_ids_present.push_back((u8) submesh.material);
+			}
+		}
+		std::sort(chunk.collision_ids_present.begin(), chunk.collision_ids_present.end());
+		chunk.collision_ids_present.erase(
+			std::unique(chunk.collision_ids_present.begin(), chunk.collision_ids_present.end()),
+			chunk.collision_ids_present.end());
 		
 		std::vector<FileReference> hero_group_refs;
 		std::vector<std::string> hero_group_names;

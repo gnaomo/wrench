@@ -18,6 +18,8 @@
 
 #include "view_3d.h"
 
+#include <editor/gui/collision_legend.h>
+
 static GLuint frame_buffer_texture = 0;
 
 static void enumerate_instances_referenced_by_selected(Instances& instances);
@@ -62,6 +64,8 @@ void view_3d()
 	});
 	
 	ImGui::Image((ImTextureID) frame_buffer_texture, *view_size);
+	
+	collision_legend_window(*lvl, a.render_settings);
 	
 	g_tools[g_active_tool]->funcs.update();
 }

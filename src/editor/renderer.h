@@ -21,6 +21,8 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
+#include <array>
+
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -66,6 +68,11 @@ struct RenderSettings
 	bool draw_areas = true;
 	bool draw_collision = false;
 	bool draw_hero_collision = false;
+	
+	// One flag per possible collision surface id (see engine/collision.cpp,
+	// create_collision_materials). true means faces with that id are hidden
+	// when draw_collision is enabled. Indexed directly by collision id (0-255).
+	std::array<bool, 256> hidden_collision_ids{};
 	
 	bool draw_selected_instance_normals = false;
 	

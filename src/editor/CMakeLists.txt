@@ -18,6 +18,7 @@ add_executable(wrencheditor
 	gui/pvar_inspector.cpp
 	gui/asset_selector.cpp
 	gui/collision_fixer.cpp
+	gui/collision_legend.cpp
 	gui/model_preview.cpp
 	tools/picker_tool.cpp
 	tools/selection_tool.cpp

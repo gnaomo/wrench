@@ -45,6 +45,14 @@
   once they're migrated off COLLADA too. No user-visible behaviour change;
   verified by building and testing (asset extraction, level editor, ISO
   repacking).
+- Use glTF (.glb) to store tie models instead of COLLADA, for the unpack
+  side and the level editor (building/repacking ties from source is not
+  yet implemented, unchanged from before). Fixed the shared glTF mesh
+  helper above to also carry over normals/vertex colours/texture
+  coordinates, not just vertex positions, which would otherwise have been
+  silently dropped for tie meshes (harmless for collision meshes, which
+  don't have any of those). Verified by building and testing (asset
+  extraction, many levels checked in the editor, ISO repacking).
 
 ## v0.6
 

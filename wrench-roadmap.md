@@ -30,9 +30,33 @@ Headline facts that affect ordering below (see `TODO.md` for full detail):
   `ColladaMaterial` in favour of the plain `Material` type (a new
   `to_materials()` helper in `core/collada.h` bridges the two at the two
   remaining call sites). This was Phase 1 item 2 below.
-- Ties and tfrags are **not yet** migrated — both still stub out `pack()`
-  with `verify_not_reached_fatal("Not yet implemented.")` and both still
-  call `write_collada()`.
+- Ties are **migrated on the unpack/editor side, verified working**:
+  `unpack_tie_class` in `tie_class.cpp` writes a `mesh.glb` via the shared
+  `native_mesh_to_gltf_mesh()` helper instead of a `mesh.dae` via
+  `write_collada()`, and `load_tie_editor_class` in `editor/level.cpp` reads
+  it back via `GLTF::read_glb` instead of `read_collada()` (this second fix
+  was needed after the first caused a crash opening levels in the editor).
+  The **pack** side (`pack_tie_class`) still stubs out with
+  `verify_not_reached_fatal("Not yet implemented.")`, and `write_tie_class()`
+  in `engine/tie.cpp` is itself still an empty stub, so full tie building
+  remains gated on the Phase 2 tface work. Tfrags are **not yet** migrated
+  — still stubs out `pack()` with `verify_not_reached_fatal("Not yet
+  implemented.")` and still calls `write_collada()`.
+  
+  While doing this, found and fixed a real gap in the shared helper itself:
+  `native_mesh_to_gltf_mesh()` (`core/gltf.h`/`.cpp`) previously only ever
+  set the `POSITION` attribute bit on output primitives, silently dropping
+  normals/vertex colours/texture coordinates on any mesh that had them.
+  This was invisible for collision meshes (which never set those mesh
+  flags) but would have silently discarded tie UVs on the round trip
+  through the `.glb` file. It now sets `NORMAL`/`COLOR_0`/`TEXCOORD_0`
+  based on the source mesh's `MESH_HAS_NORMALS`/`MESH_HAS_VERTEX_COLOURS`/
+  `MESH_HAS_TEX_COORDS` flags, mirroring what the old COLLADA writer did.
+  Worth keeping in mind for the tfrags migration too, since tfrags also
+  carry texture coordinates.
+  
+  Built and functionally tested by the user: ISO extracted, many levels
+  opened and checked in the editor, ISO repacked -- all working.
 - Moby's matrix/tristrip split hasn't been started.
 - Of the ~94 `fs::path` uses in `src/assetmgr`, 2 call sites
   (`enumerate_source_files` in `asset.cpp`/`zipped_asset_bank.cpp`) are
@@ -84,7 +108,40 @@ the WIP).
    longer include `core/collada.h` at all. Built and functionally tested by
    the user: opens, extracts, level editor works, ISO repacking works.
 3. Migrate **ties** off COLLADA using those shared helpers
-   (`tie_class.cpp`) — not started.
+   (`tie_class.cpp`) — **unpack side done and verified; pack side still
+   blocked.** `unpack_tie_class` now converts the `ColladaScene` produced by
+   `recover_tie_class()` into a `GLTF::Mesh` via `native_mesh_to_gltf_mesh()`
+   and writes it out as `mesh.glb` (matching the `editor_mesh` field, same
+   as before) instead of writing a `mesh.dae` via `write_collada()`. Found
+   along the way that `native_mesh_to_gltf_mesh()` only ever propagated the
+   `POSITION` attribute -- harmless for collision (no tex coords/normals),
+   but would have dropped tie UVs silently, so fixed it to also propagate
+   `NORMAL`/`COLOR_0`/`TEXCOORD_0` based on the source mesh's flags.
+   
+   This surfaced a second, previously-hidden bug: `load_tie_editor_class` in
+   `editor/level.cpp` (one of the "two `editor/level.cpp` call sites"
+   flagged in item 5 below) still assumed `editor_mesh`'s file was COLLADA
+   XML and called `read_collada()` on it directly, so the editor crashed
+   with `[collada.cpp:96] error: expected <` the first time it tried to load
+   a level after this change (the raw glTF binary doesn't start with `<`).
+   Fixed by rewriting `load_tie_editor_class` to parse the `.glb` with
+   `GLTF::read_glb`/`GLTF::lookup_node`, remap materials with
+   `GLTF::map_gltf_materials_to_wrench_materials`, and upload with
+   `upload_gltf_mesh`/`upload_materials`, mirroring `load_moby_editor_class`/
+   `load_shrub_editor_class`. Still populates `EditorClass::mesh` (the
+   native CPU-side copy, via `gltf_mesh_to_native_mesh`) since
+   `editor/gui/collision_fixer.cpp`'s `generate_bounding_box()` depends on
+   it for the instanced-collision-fixer tool -- moby/shrub don't set that
+   field since nothing else needs it for them.
+   
+   Note `pack_tie_class` still calls `verify_not_reached_fatal("Not yet
+   implemented.")` regardless of any of this, since `write_tie_class()` in
+   `engine/tie.cpp` is itself an empty stub -- that's Phase 2 item 7's job,
+   not this item's.
+   
+   Built and functionally tested by the user: extracted the ISO, opened and
+   checked many levels in the editor (tie meshes/textures render correctly),
+   and repacked the ISO successfully.
 4. Migrate **tfrags** off COLLADA the same way (`tfrags_asset.cpp`) — not
    started. Do this *together with* the tface source-representation design
    (Phase 2, item 6), since the glTF file is where that representation

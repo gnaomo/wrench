@@ -99,6 +99,39 @@ describes the commits as of when they landed, not the current tree):
   `unpack_collision_asset()` collided with a pre-existing
   `CollectionAsset& materials` later in the same function; renamed to
   `gltf_materials`.
+- `wrenchbuild/classes/tie_class.cpp`, `core/gltf.h`/`.cpp`,
+  `editor/level.cpp` (built and functionally verified by a human -- ISO
+  extracted, many levels opened/checked in the editor, ISO repacked):
+  `unpack_tie_class()` now writes tie meshes out as `mesh.glb` via the
+  shared `native_mesh_to_gltf_mesh()` helper (see the item above) instead
+  of `mesh.dae` via `write_collada()`. `recover_tie_class()` itself is
+  unchanged and still returns a `ColladaScene` internally -- only the file
+  written to disk changed. This is unpack-only: `pack_tie_class()` still
+  calls `verify_not_reached_fatal("Not yet implemented.")` regardless,
+  since `write_tie_class()` in `engine/tie.cpp` is itself an empty stub.
+  Two bugs were found and fixed along the way:
+  - `native_mesh_to_gltf_mesh()` only ever set the glTF `POSITION`
+    attribute bit on output primitives, silently dropping normals/vertex
+    colours/texture coordinates for any mesh that had them. Invisible for
+    collision meshes (which never set those mesh flags), but would have
+    silently discarded tie UVs on the round trip through the `.glb` file.
+    Now sets `NORMAL`/`COLOR_0`/`TEXCOORD_0` based on the source mesh's
+    `MESH_HAS_NORMALS`/`MESH_HAS_VERTEX_COLOURS`/`MESH_HAS_TEX_COORDS`
+    flags, matching what the old COLLADA writer did. Relevant to the
+    upcoming tfrags migration too, since tfrags also carry UVs.
+  - `load_tie_editor_class()` in `editor/level.cpp` still assumed
+    `editor_mesh`'s file was COLLADA XML and called `read_collada()`
+    directly on it, which crashed the editor (`[collada.cpp:96] error:
+    expected <`) the first time a level was opened after the change above
+    landed, since the file is now a binary `.glb`. Rewritten to parse the
+    `.glb` with `GLTF::read_glb`/`GLTF::lookup_node`, remap materials with
+    `GLTF::map_gltf_materials_to_wrench_materials`, and upload with
+    `upload_gltf_mesh`/`upload_materials`, mirroring
+    `load_moby_editor_class`/`load_shrub_editor_class`. Still populates
+    `EditorClass::mesh` (the native CPU-side copy, via
+    `gltf_mesh_to_native_mesh`), unlike the moby/shrub loaders, because
+    `editor/gui/collision_fixer.cpp`'s `generate_bounding_box()` depends on
+    it for the instanced-collision-fixer tool.
 - Separately from the diff above: the `thirdparty/zlib` submodule had a
   tracked file (`zconf.h`) missing from its working directory, unrelated to
   any of the changes above and with no clear cause found. It has been
@@ -120,7 +153,10 @@ In no particular order:
 	- Build new tfrags
 	- Make sure to pad the tfrag blocks in the level core and the chunks to the same size
 - Tie Model Packing
-	- Similar issues as with the tfrag renderer
+	- ~~Migrate tie mesh unpacking from COLLADA to glTF~~ (unpack side only --
+	  see "Recently committed changes" above; `pack_tie_class()`/
+	  `write_tie_class()` are still unimplemented stubs)
+	- Similar issues as with the tfrag renderer for full model packing
 - Occlusion System
 	- ~~Generate new occlusion data during a build~~
 	- ~~Possibly use OpenGL in wrenchbuild to speed things up (should be faster than raycasting)~~

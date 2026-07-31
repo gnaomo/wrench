@@ -1,7 +1,7 @@
 # Wrench Developer Roadmap
 
 Grounded against the actual working tree at `/home/yogas1/github_cloned_repos/wrench`
-(branch `master`, currently at `1f4d099d`) — not just `TODO.md`.
+(branch `master`, currently at `768155cb`) — not just `TODO.md`.
 
 > **Maintenance note:** this file is meant to be kept current as work
 > lands, not just written once. Each phase below is marked DONE / IN
@@ -64,6 +64,14 @@ Headline facts that affect ordering below (see `TODO.md` for full detail):
 - VAG has a low-level size-reading stub (`vag.cpp`); no pack/unpack
   integration. 989snd, incremental builds/asset-graph persistence, and
   build-wide multithreading all confirmed not started.
+- **Out of sequence, from a separate session:** a per-surface-id collision
+  visibility filter landed in the editor (`768155cb`) — `RenderSettings::
+  hidden_collision_ids`, a "Collision legend" window, and a View >
+  Visibility > Collision ids menu. This is Phase 5-adjacent editor/GUI
+  work that jumped the queue; it's additive and defaults to `nullptr` for
+  every draw call except the collision one, so it doesn't block or
+  interact with anything in Phase 1–4 above. Not yet confirmed working by
+  a human tester (see `TODO.md`).
 
 ## Ordering — why this sequence
 

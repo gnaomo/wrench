@@ -3,14 +3,14 @@
 > **Note (LLM-edited, unverified):** The section below and some entries
 > further down were written/updated by an LLM (Claude) reading a working-
 > tree diff, not by a human developer reviewing the change. As of this
-> note the changes described below have been committed (in four separate
-> commits: buffer-overflow fix, assetmgr path-matching fix, crash handler,
-> collision COLLADA->glTF migration), and the build succeeds, but none of
-> it has been reviewed, tested against edge cases, or verified for
-> architectural correctness by a human or by the project maintainer.
-> Multiple separate LLM sessions have been working on this codebase without
-> cross-checking each other. Treat everything below as a claim to be
-> verified, not a confirmed fact.
+> note, all changes described below have been committed (each as its own
+> commit -- see the bullet list for what each one contains) and the build
+> succeeds, but none of it has been reviewed, tested against edge cases,
+> or verified for architectural correctness by a human or by the project
+> maintainer, except where a bullet explicitly says a human built and
+> functionally tested it. Multiple separate LLM sessions have been working
+> on this codebase without cross-checking each other. Treat everything
+> below as a claim to be verified, not a confirmed fact.
 
 ## Recently committed changes as of this note
 
@@ -132,6 +132,34 @@ describes the commits as of when they landed, not the current tree):
     `gltf_mesh_to_native_mesh`), unlike the moby/shrub loaders, because
     `editor/gui/collision_fixer.cpp`'s `generate_bounding_box()` depends on
     it for the instanced-collision-fixer tool.
+- New files `editor/gui/collision_legend.h`/`.cpp`, `editor/renderer.h`/`.cpp`,
+  `editor/level.h`/`.cpp`, `editor/gui/editor_gui.cpp`, `editor/gui/view_3d.cpp`,
+  `editor/CMakeLists.txt` (unlike the entries above, this commit's message
+  does not claim it was built or functionally tested by a human -- treat
+  it as unverified until confirmed): adds a way to hide/show collision
+  faces by surface id in the editor, instead of the existing
+  all-or-nothing `draw_collision` toggle.
+  - `RenderSettings::hidden_collision_ids` (`std::array<bool, 256>`)
+    threaded through `draw_mesh`/`draw_mesh_instanced` as an optional
+    filter parameter (defaults to `nullptr`), applied only to the
+    collision draw call in `draw_level()`. All other callers (moby, shrub,
+    tie, tfrags, hero collision) pass no argument and so are unaffected --
+    this does not touch or interact with the tie glTF migration above,
+    which is a separate code path (`load_tie_editor_class` vs. this
+    feature's `Level::read`/`draw_level` changes).
+  - `EditorChunk::collision_ids_present`: distinct collision ids used in
+    each chunk, collected at load time in `Level::read` from the same
+    submesh list `collision_to_scene()` already deduplicates, so it
+    doesn't need to scan all 256 possible ids.
+  - `gui/collision_legend.h`/`.cpp`: shared checkbox-list logic (colour
+    swatch, hex id, known name where available, All/None/Invert), a
+    lookup table of documented names for ~19 identified collision ids, a
+    floating "Collision legend" window over the 3D viewport, and a nested
+    View > Visibility > Collision ids menu that reuses the same checkbox
+    logic so the two entry points can't drift apart.
+  - Not persisted across relaunches (no other `RenderSettings` flag is
+    persisted either, by the commit's own note, so this follows existing
+    precedent rather than being an oversight).
 - Separately from the diff above: the `thirdparty/zlib` submodule had a
   tracked file (`zconf.h`) missing from its working directory, unrelated to
   any of the changes above and with no clear cause found. It has been

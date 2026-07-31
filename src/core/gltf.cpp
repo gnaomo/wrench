@@ -484,6 +484,15 @@ Mesh native_mesh_to_gltf_mesh(
 		
 		MeshPrimitive& primitive = gltf_mesh.primitives.emplace_back();
 		primitive.attributes_bitfield = POSITION;
+		if (mesh.flags & MESH_HAS_NORMALS) {
+			primitive.attributes_bitfield |= NORMAL;
+		}
+		if (mesh.flags & MESH_HAS_VERTEX_COLOURS) {
+			primitive.attributes_bitfield |= COLOR_0;
+		}
+		if (mesh.flags & MESH_HAS_TEX_COORDS) {
+			primitive.attributes_bitfield |= TEXCOORD_0;
+		}
 		primitive.mode = TRIANGLES;
 		primitive.material = material_index;
 		

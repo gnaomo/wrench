@@ -17,6 +17,8 @@
 */
 
 #include <engine/tie.h>
+#include <core/gltf.h>
+#include <toolwads/wads.h>
 #include <assetmgr/material_asset.h>
 #include <wrenchbuild/asset_unpacker.h>
 #include <wrenchbuild/asset_packer.h>
@@ -56,11 +58,30 @@ static void unpack_tie_class(TieClassAsset& dest, InputStream& src, BuildConfig 
 	TieClass tie = read_tie_class(buffer, config.game());
 	ColladaScene scene = recover_tie_class(tie);
 	
-	std::vector<u8> xml = write_collada(scene);
-	auto ref = dest.file().write_text_file("mesh.dae", (char*) xml.data());
+	// Ties are being migrated off COLLADA (see wrench-roadmap.md, Phase 1 item
+	// 3) -- recover_tie_class still produces a ColladaScene since it's shared
+	// groundwork for the eventual tie build/pack side too, but here we convert
+	// it into a single-mesh .glb using the same shared GLTF::Mesh conversion
+	// helpers the collision code uses (core/gltf.h), rather than writing a
+	// mesh.dae file via write_collada.
+	auto [gltf, gltf_scene] = GLTF::create_default_scene(get_versioned_application_name("Wrench Build Tool"));
+	
+	std::vector<Material> gltf_materials = to_materials(scene.materials);
+	GLTF::Mesh converted_mesh = native_mesh_to_gltf_mesh(gltf, scene.meshes.at(0), gltf_materials);
+	std::string mesh_name = converted_mesh.name.has_value() ? *converted_mesh.name : "mesh";
+	
+	gltf_scene->nodes.emplace_back((s32) gltf.nodes.size());
+	GLTF::Node& node = gltf.nodes.emplace_back();
+	node.name = mesh_name;
+	node.mesh = (s32) gltf.meshes.size();
+	gltf.meshes.emplace_back(std::move(converted_mesh));
+	
+	std::vector<u8> glb = GLTF::write_glb(gltf);
+	auto [stream, ref] = dest.file().open_binary_file_for_writing("mesh.glb");
+	stream->write_v(glb);
 	
 	MeshAsset& editor_mesh = dest.editor_mesh();
-	editor_mesh.set_name("mesh");
+	editor_mesh.set_name(mesh_name);
 	editor_mesh.set_src(ref);
 }
 

@@ -249,6 +249,16 @@ void map_gltf_materials_to_wrench_materials(ModelFile& gltf, const std::vector<:
 // collision behaviour, since the octree accepts either representation --
 // callers for other asset types should check whether an analogous packed
 // format assumption holds before assuming the same is true for them.
+//
+// The output primitives always carry POSITION data, and additionally carry
+// NORMAL/COLOR_0/TEXCOORD_0 data whenever the corresponding MESH_HAS_NORMALS/
+// MESH_HAS_VERTEX_COLOURS/MESH_HAS_TEX_COORDS flag is set on the source mesh
+// -- mirroring which <source> elements the old COLLADA writer would emit
+// (see write_geometries in core/collada.cpp). Collision meshes don't set any
+// of those flags so this is a no-op for them, but callers of other asset
+// types (e.g. ties) that do carry texture coordinates or normals need this
+// to avoid silently dropping that data on the round trip through the .glb
+// file.
 Mesh native_mesh_to_gltf_mesh(
 	ModelFile& gltf, const ::Mesh& mesh, const std::vector<::Material>& materials);
 

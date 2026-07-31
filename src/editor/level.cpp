@@ -274,15 +274,17 @@ Opt<EditorClass> load_tie_editor_class(const TieClassAsset& tie)
 		return std::nullopt;
 	}
 	const MeshAsset& asset = tie.get_editor_mesh();
-	std::string xml = asset.src().read_text_file();
-	ColladaScene scene = read_collada((char*) xml.data());
-	Mesh* mesh = scene.find_mesh(asset.name());
-	if (!mesh) {
+	std::unique_ptr<InputStream> stream = asset.src().open_binary_file_for_reading();
+	std::vector<u8> glb = stream->read_multiple<u8>(stream->size());
+	GLTF::ModelFile gltf = GLTF::read_glb(glb);
+	GLTF::Node* node = GLTF::lookup_node(gltf, asset.name().c_str());
+	if (node == nullptr || !node->mesh.has_value() || *node->mesh < 0 || *node->mesh >= gltf.meshes.size()) {
 		return std::nullopt;
 	}
+	GLTF::Mesh& mesh = gltf.meshes[*node->mesh];
 	
 	MaterialSet material_set = read_material_assets(tie.get_materials());
-	map_lhs_material_indices_to_rhs_list(scene, material_set.materials);
+	GLTF::map_gltf_materials_to_wrench_materials(gltf, material_set.materials);
 	
 	std::vector<Texture> textures;
 	for (FileReference ref : material_set.textures) {
@@ -293,10 +295,16 @@ Opt<EditorClass> load_tie_editor_class(const TieClassAsset& tie)
 		textures.emplace_back(*texture);
 	}
 	
+	// Ties (unlike moby/shrub) also keep a copy of the native CPU-side mesh
+	// around on the EditorClass, since the instanced collision fixer UI
+	// (editor/gui/collision_fixer.cpp) needs raw vertex positions to compute
+	// a bounding box, and previously got that for free from the ColladaScene
+	// returned by read_collada(). Derive it from the same glTF mesh used for
+	// rendering so the two stay in sync.
 	EditorClass editor_tie;
-	editor_tie.mesh = std::move(*mesh);
-	editor_tie.render_mesh = upload_mesh(*editor_tie.mesh, true);
-	editor_tie.materials = upload_collada_materials(scene.materials, textures);
+	editor_tie.mesh = gltf_mesh_to_native_mesh(mesh);
+	editor_tie.render_mesh = upload_gltf_mesh(mesh, true);
+	editor_tie.materials = upload_materials(material_set.materials, textures);
 	return editor_tie;
 }
 

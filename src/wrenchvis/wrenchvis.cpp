@@ -17,6 +17,7 @@
 */
 
 #include <core/stdout_thread.h>
+#include <core/gltf.h>
 #include <assetmgr/asset_types.h>
 #include <engine/tfrag_high.h>
 #include <engine/occlusion.h>
@@ -127,16 +128,31 @@ static std::vector<OcclChunk> load_chunks(const CollectionAsset& collection, Gam
 	return chunks;
 }
 
+// Loads just the native Mesh for occlusion/visibility computation -- unlike
+// the editor's load_moby_editor_class/load_tie_editor_class, materials
+// aren't needed here at all (occlusion only cares about geometry), so this
+// skips straight to gltf_mesh_to_native_mesh() rather than also uploading a
+// RenderMesh/materials for rendering.
+static Opt<Mesh> load_editor_mesh_for_occlusion(const MeshAsset& editor_mesh)
+{
+	std::unique_ptr<InputStream> stream = editor_mesh.src().open_binary_file_for_reading();
+	std::vector<u8> glb = stream->read_multiple<u8>(stream->size());
+	GLTF::ModelFile gltf = GLTF::read_glb(glb);
+	GLTF::Node* node = GLTF::lookup_node(gltf, editor_mesh.name().c_str());
+	if (node == nullptr || !node->mesh.has_value() || *node->mesh < 0 || *node->mesh >= gltf.meshes.size()) {
+		return std::nullopt;
+	}
+	return gltf_mesh_to_native_mesh(gltf.meshes[*node->mesh]);
+}
+
 static std::map<s32, Mesh> load_moby_classes(const CollectionAsset& collection)
 {
 	std::map<s32, Mesh> classes;
 	collection.for_each_logical_child_of_type<MobyClassAsset>([&](const MobyClassAsset& child) {
 		if (child.has_editor_mesh()) {
 			const MeshAsset& editor_mesh = child.get_editor_mesh();
-			std::string collada = editor_mesh.src().read_text_file();
-			ColladaScene scene = read_collada((char*) collada.c_str());
-			Mesh* mesh = scene.find_mesh(editor_mesh.name());
-			verify(mesh, "Failed to find mesh '%s'.", editor_mesh.name().c_str());
+			Opt<Mesh> mesh = load_editor_mesh_for_occlusion(editor_mesh);
+			verify(mesh.has_value(), "Failed to find mesh '%s'.", editor_mesh.name().c_str());
 			classes[child.id()] = std::move(*mesh);
 		}
 	});
@@ -148,10 +164,8 @@ static std::map<s32, Mesh> load_tie_classes(const CollectionAsset& collection)
 	std::map<s32, Mesh> classes;
 	collection.for_each_logical_child_of_type<TieClassAsset>([&](const TieClassAsset& child) {
 		const MeshAsset& editor_mesh = child.get_editor_mesh();
-		std::string collada = editor_mesh.src().read_text_file();
-		ColladaScene scene = read_collada((char*) collada.c_str());
-		Mesh* mesh = scene.find_mesh(editor_mesh.name());
-		verify(mesh, "Failed to find mesh '%s'.", editor_mesh.name().c_str());
+		Opt<Mesh> mesh = load_editor_mesh_for_occlusion(editor_mesh);
+		verify(mesh.has_value(), "Failed to find mesh '%s'.", editor_mesh.name().c_str());
 		classes[child.id()] = std::move(*mesh);
 	});
 	return classes;

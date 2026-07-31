@@ -104,17 +104,35 @@ void Level::read(LevelAsset& asset, Game g)
 			continue;
 		}
 		const MeshAsset& tfrags_mesh_asset = tfrags_asset.get_editor_mesh();
-		std::string xml = tfrags_mesh_asset.src().read_text_file();
-		ColladaScene scene = read_collada((char*) xml.data());
-		Mesh* mesh = scene.find_mesh(tfrags_mesh_asset.name());
-		if (!mesh) {
+		std::unique_ptr<InputStream> tfrags_stream = tfrags_mesh_asset.src().open_binary_file_for_reading();
+		std::vector<u8> tfrags_glb = tfrags_stream->read_multiple<u8>(tfrags_stream->size());
+		GLTF::ModelFile tfrags_gltf = GLTF::read_glb(tfrags_glb);
+		GLTF::Node* tfrags_node = GLTF::lookup_node(tfrags_gltf, tfrags_mesh_asset.name().c_str());
+		if (tfrags_node == nullptr || !tfrags_node->mesh.has_value() || *tfrags_node->mesh < 0 || *tfrags_node->mesh >= tfrags_gltf.meshes.size()) {
 			continue;
 		}
-		chunk.tfrags = upload_mesh(*mesh, true);
+		GLTF::Mesh& tfrags_mesh = tfrags_gltf.meshes[*tfrags_node->mesh];
 		
+		// Materials are only stored once per level, on chunk 0's TfragsAsset
+		// (tfrag/collision assets are not duplicated per chunk -- see
+		// CHANGELOG.md v0.4), so only remap/upload them there, unlike
+		// load_moby_editor_class/load_tie_editor_class/load_shrub_editor_class,
+		// which always have their own per-class materials. This must happen
+		// before upload_gltf_mesh() below, since map_gltf_materials_to_wrench_
+		// materials() rewrites primitive.material indices on tfrags_gltf (and
+		// therefore on tfrags_mesh, which references into it) in place -- the
+		// previous COLLADA-based version of this code called the equivalent
+		// remap (map_lhs_material_indices_to_rhs_list) *after* uploading the
+		// mesh, which looks like an ordering bug, though it turns out to be a
+		// no-op in practice: recover_tfrags()'s material list is already in
+		// identity order (name "N" at index N, matching the in-game texture
+		// id), and unpack_level_materials() names each MaterialAsset the same
+		// way, so the "remap" was always the identity mapping anyway. Fixed
+		// here to match the correct ordering used everywhere else in this file
+		// regardless.
 		if (i == 0 && tfrags_asset.has_materials()) {
 			MaterialSet material_set = read_material_assets(tfrags_asset.get_materials());
-			map_lhs_material_indices_to_rhs_list(scene, material_set.materials);
+			GLTF::map_gltf_materials_to_wrench_materials(tfrags_gltf, material_set.materials);
 			
 			std::vector<Texture> textures;
 			for (FileReference ref : material_set.textures) {
@@ -125,8 +143,10 @@ void Level::read(LevelAsset& asset, Game g)
 				textures.emplace_back(*texture);
 			}
 			
-			tfrag_materials = upload_collada_materials(scene.materials, textures);
+			tfrag_materials = upload_materials(material_set.materials, textures);
 		}
+		
+		chunk.tfrags = upload_gltf_mesh(tfrags_mesh, true);
 	}
 	
 	level_wad().get_moby_classes().for_each_logical_child_of_type<MobyClassAsset>([&](MobyClassAsset& moby) {

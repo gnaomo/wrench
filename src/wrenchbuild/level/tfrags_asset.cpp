@@ -18,6 +18,8 @@
 
 #include "tfrags_asset.h"
 
+#include <core/gltf.h>
+#include <toolwads/wads.h>
 #include <assetmgr/material_asset.h>
 #include <engine/tfrag_high.h>
 
@@ -56,12 +58,39 @@ static void unpack_tfrags(TfragsAsset& dest, InputStream& src, BuildConfig confi
 	std::vector<u8> buffer = src.read_multiple<u8>(0, src.size());
 	Tfrags tfrags = read_tfrags(buffer, config.game());
 	ColladaScene scene = recover_tfrags(tfrags, TFRAG_NO_FLAGS);
+	if (scene.meshes.empty()) {
+		// recover_tfrags() only emits a mesh if tfrags.fragments is non-empty;
+		// with no fragments there's nothing to write out, so just leave
+		// editor_mesh unset (mirrors how the editor/packer already treat a
+		// TfragsAsset with no editor_mesh -- see Level::read/pack_tfrags).
+		return;
+	}
 	
-	std::vector<u8> xml = write_collada(scene);
-	auto ref = dest.file().write_text_file("mesh.dae", (char*) xml.data());
+	// Tfrags are being migrated off COLLADA (see wrench-roadmap.md, Phase 1
+	// item 4), mirroring the tie migration in tie_class.cpp: recover_tfrags()
+	// still returns a ColladaScene (it's shared groundwork for the eventual
+	// tfrag build/pack side too), but here we convert its single mesh into a
+	// glTF one using the same shared conversion helpers the collision/tie
+	// code uses (core/gltf.h), and write mesh.glb instead of mesh.dae via
+	// write_collada().
+	auto [gltf, gltf_scene] = GLTF::create_default_scene(get_versioned_application_name("Wrench Build Tool"));
+	
+	std::vector<Material> gltf_materials = to_materials(scene.materials);
+	GLTF::Mesh converted_mesh = native_mesh_to_gltf_mesh(gltf, scene.meshes.at(0), gltf_materials);
+	std::string mesh_name = converted_mesh.name.has_value() ? *converted_mesh.name : "mesh";
+	
+	gltf_scene->nodes.emplace_back((s32) gltf.nodes.size());
+	GLTF::Node& node = gltf.nodes.emplace_back();
+	node.name = mesh_name;
+	node.mesh = (s32) gltf.meshes.size();
+	gltf.meshes.emplace_back(std::move(converted_mesh));
+	
+	std::vector<u8> glb = GLTF::write_glb(gltf);
+	auto [stream, ref] = dest.file().open_binary_file_for_writing("mesh.glb");
+	stream->write_v(glb);
 	
 	MeshAsset& editor_mesh = dest.editor_mesh();
-	editor_mesh.set_name("mesh");
+	editor_mesh.set_name(mesh_name);
 	editor_mesh.set_src(ref);
 }
 

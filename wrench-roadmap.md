@@ -70,8 +70,8 @@ Headline facts that affect ordering below (see `TODO.md` for full detail):
   Visibility > Collision ids menu. This is Phase 5-adjacent editor/GUI
   work that jumped the queue; it's additive and defaults to `nullptr` for
   every draw call except the collision one, so it doesn't block or
-  interact with anything in Phase 1–4 above. Not yet confirmed working by
-  a human tester (see `TODO.md`).
+  interact with anything in Phase 1–4 above. Built and functionally
+  verified by a human.
 
 ## Ordering — why this sequence
 

@@ -134,11 +134,10 @@ describes the commits as of when they landed, not the current tree):
     it for the instanced-collision-fixer tool.
 - New files `editor/gui/collision_legend.h`/`.cpp`, `editor/renderer.h`/`.cpp`,
   `editor/level.h`/`.cpp`, `editor/gui/editor_gui.cpp`, `editor/gui/view_3d.cpp`,
-  `editor/CMakeLists.txt` (unlike the entries above, this commit's message
-  does not claim it was built or functionally tested by a human -- treat
-  it as unverified until confirmed): adds a way to hide/show collision
-  faces by surface id in the editor, instead of the existing
-  all-or-nothing `draw_collision` toggle.
+  `editor/CMakeLists.txt` (built and functionally verified by a human --
+  the per-id collision filter and legend UI work as intended): adds a way
+  to hide/show collision faces by surface id in the editor, instead of the
+  existing all-or-nothing `draw_collision` toggle.
   - `RenderSettings::hidden_collision_ids` (`std::array<bool, 256>`)
     threaded through `draw_mesh`/`draw_mesh_instanced` as an optional
     filter parameter (defaults to `nullptr`), applied only to the

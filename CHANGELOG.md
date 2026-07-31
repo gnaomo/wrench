@@ -56,8 +56,8 @@
 - Added a per-surface-id visibility filter for collision in the editor,
   plus a "Collision legend" window and a View > Visibility > Collision ids
   menu to drive it, replacing the previous all-or-nothing collision
-  toggle for this use case (the toggle itself is unchanged). Not yet
-  confirmed working by a human tester.
+  toggle for this use case (the toggle itself is unchanged). Verified
+  working by a human tester.
 
 ## v0.6
 

@@ -208,6 +208,67 @@ describes the commits as of when they landed, not the current tree):
   executable the editor/build tools never invoke, so the human build/test
   pass didn't exercise it -- confirmed to compile as part of the overall
   build, but not functionally run/tested by anyone yet.
+- New files `core/mesh_scene.h`/`.cpp`, deleted `core/collada.h`/`.cpp`, and
+  ~31 other files touched for includes/renames (built and functionally
+  verified by a human -- full build succeeded, ISO extracted, levels
+  opened and checked in the editor, ISO repacked): `read_collada()`/
+  `write_collada()` had zero remaining callers anywhere after the tie/tfrag
+  migrations above, but `ColladaScene`/`ColladaMaterial` (the *types*, not
+  the XML functions) turned out to still be load-bearing as the shared
+  in-memory "recovered mesh" representation across ~17 files
+  (`engine/collision.*`, `engine/tie.*`, `engine/moby_low.*`,
+  `engine/tfrag_high.*`/`tfrag_debug.*`, `gui/render_mesh.*`,
+  `editor/instanced_collision_recovery.*`, `editor/gui/collision_fixer.cpp`,
+  `editor/level.cpp`, three `wrenchbuild` files, `wrenchvis.cpp`) -- used by
+  `recover_collision()`/`recover_tie_class()`/`recover_tfrags()`/
+  `recover_moby_class()`/`build_instanced_collision()` (the editor's
+  instanced collision fixer tool), even for asset types that already write
+  glTF. So deleting `core/collada.cpp/h` meant renaming and relocating
+  these types rather than just deleting dead code:
+  - `ColladaScene` -> `RecoveredScene`, `ColladaMaterial` ->
+    `RecoveredMaterial`, `upload_collada_material(s)` ->
+    `upload_recovered_material(s)`, moved into new `core/mesh_scene.h`/`.cpp`
+    along with `Joint`/`add_joint()`/`to_materials()`/
+    `map_lhs_material_indices_to_rhs_list()`.
+  - Dropped `read_collada()`/`write_collada()` and all their XML-parsing/
+    -serialising-only helper functions entirely, after confirming zero
+    remaining callers.
+  - Found and removed two pieces of pre-existing dead code while auditing
+    what to keep: a `read_collada_files()` utility in
+    `assetmgr/asset_util.cpp`/`.h` with zero callers anywhere (long
+    superseded by `read_glb_files()`, which sits right next to it), and a
+    declared-but-never-defined `assert_collada_scenes_equal()` in the old
+    header paired with a never-called, differently-named
+    `verify_fatal_collada_scenes_equal()` in the old .cpp (a mismatch that
+    means neither was ever actually callable/called from outside the file).
+  - Finished off the last two real `read_collada`/`write_collada` call
+    sites, the `extract_tfrags`/`extract_tie` debug subcommands in
+    `wrenchbuild/main.cpp`, converting them to write `.glb` the same way
+    `extract_moby`/`extract_shrub` already did (including usage-text
+    updates).
+  - Cleaned up stale comments/error strings referencing the now-deleted
+    functions/file, including one in `engine/moby_low.cpp`'s
+    `build_moby_class()` ("Collada file doesn't contain...") unrelated to
+    any of this session's earlier work.
+  - Three files (`engine/moby_packet.h`, `instancemgr/level_settings.h`,
+    `wrenchbuild/level/sky_asset.cpp`) turned up with a `#include
+    <core/collada.h>` that, on inspection, was already vestigial -- none of
+    them use `Joint`/`RecoveredScene`/`RecoveredMaterial`/`to_materials()`
+    or plain `Material`/`MaterialSurface` anywhere. Left these pointed at
+    the new `core/mesh_scene.h` rather than removing the include outright,
+    since that's a strictly safer edit to make without a compiler to check
+    against (worst case is a harmless unused include, not a missing one).
+  
+  Found and fixed one real latent bug this exposed:
+  `editor/instanced_collision_recovery.h` declared a function returning
+  `Opt<ColladaScene>` without including the header that defined the type,
+  silently relying on a transitive include path through
+  `assetmgr/asset_util.h` -> `assetmgr/asset.h`. That path broke when the
+  now-unused `core/collada.h` include was removed from `asset_util.h` as
+  part of deleting the dead `read_collada_files()` above -- fixed by
+  including `core/mesh_scene.h` directly in the header that actually uses
+  the type, rather than continuing to rely on transitive luck (a
+  pre-existing fragility, not something introduced by this session).
 - Separately from the diff above: the `thirdparty/zlib` submodule had a
   tracked file (`zconf.h`) missing from its working directory, unrelated to
   any of the changes above and with no clear cause found. It has been

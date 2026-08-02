@@ -69,6 +69,19 @@
   (tfrag geometry/textures); the `wrenchvis` fix specifically wasn't
   exercised by that test, since it's a standalone tool not invoked by the
   editor or build tools, but it does compile as part of the normal build.
+- Deleted `core/collada.h`/`.cpp` entirely, now that nothing reads or
+  writes COLLADA XML any more. The shared "recovered mesh" types used
+  internally by mesh recovery code (renamed from `ColladaScene`/
+  `ColladaMaterial` to `RecoveredScene`/`RecoveredMaterial`, since they're
+  no longer COLLADA-specific) moved to new files `core/mesh_scene.h`/
+  `.cpp`. Also removed two pieces of dead code found in the process (an
+  unused file-reading helper superseded by its glTF equivalent long ago,
+  and a declared-but-never-defined function paired with a never-called,
+  differently-named one) and converted the last two loose-file debug CLI
+  subcommands (`extract_tfrags`/`extract_tie`) to write `.glb` instead of
+  `.dae`, matching the equivalent moby/shrub commands. No user-facing
+  behaviour change intended. Verified by building and testing (full
+  build, ISO extraction, level editor, ISO repacking).
 
 ## v0.6
 

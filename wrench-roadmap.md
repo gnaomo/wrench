@@ -1,7 +1,7 @@
 # Wrench Developer Roadmap
 
 Grounded against the actual working tree at `/home/yogas1/github_cloned_repos/wrench`
-(branch `master`, currently at `768155cb`) — not just `TODO.md`.
+(branch `master`, currently at `6ce08254`) — not just `TODO.md`.
 
 > **Maintenance note:** this file is meant to be kept current as work
 > lands, not just written once. Each phase below is marked DONE / IN
@@ -27,9 +27,11 @@ Headline facts that affect ordering below (see `TODO.md` for full detail):
 - The generic `Mesh <-> GLTF::Mesh` conversion helpers
   (`native_mesh_to_gltf_mesh`/`gltf_mesh_to_native_mesh`) have been moved
   out of collision-specific code into `core/gltf.h`/`.cpp`, decoupled from
-  `ColladaMaterial` in favour of the plain `Material` type (a new
-  `to_materials()` helper in `core/collada.h` bridges the two at the two
-  remaining call sites). This was Phase 1 item 2 below.
+  `ColladaMaterial` in favour of the plain `Material` type (a `to_materials()`
+  helper, originally in `core/collada.h` and now in `core/mesh_scene.h`
+  since that file was deleted -- see item 5 -- bridges the two at the call
+  sites that still produce a `RecoveredMaterial`, formerly `ColladaMaterial`).
+  This was Phase 1 item 2 below.
 - Ties are **migrated on the unpack/editor side, verified working**:
   `unpack_tie_class` in `tie_class.cpp` writes a `mesh.glb` via the shared
   `native_mesh_to_gltf_mesh()` helper instead of a `mesh.dae` via
@@ -117,7 +119,7 @@ uncommitted risked bit-rot or merge pain once Phase 1–2 work touched the
 same files (`collision_asset.h`, `collision_mesh.h` were already part of
 the WIP).
 
-### Phase 1 — Finish the format migration (unlocks Phase 2) — **IN PROGRESS**
+### Phase 1 — Finish the format migration (unlocks Phase 2) — **DONE**
 2. **Generalize** `native_mesh_to_gltf_mesh()`/`gltf_mesh_to_native_mesh()`
    out of `collision_mesh.cpp` into shared code — **done and verified.**
    Moved into `core/gltf.h`/`.cpp` (inside `namespace GLTF`, relying on ADL
@@ -207,20 +209,54 @@ the WIP).
    normal build.
 5. Once ties, tfrags, and the two `editor/level.cpp` call sites, and the
    two `wrenchbuild/main.cpp` call sites no longer call `read_collada`/
-   `write_collada`, delete `core/collada.cpp/h` entirely (including the
-   `to_materials()`/`ColladaMaterial`/`ColladaScene` types added/used along
-   the way — by this point ties/tfrags should no longer need them either).
-   This retires the whole bug class you just hit, rather than patching
-   instances of it. **Inventory updated:** `wrenchvis/wrenchvis.cpp` also
-   has two `read_collada` call sites (`load_moby_classes`/
-   `load_tie_classes`, item 4 above) that block this deletion too and
-   weren't originally accounted for here -- both are now fixed, so this
-   item's blocker list is: tfrags' own `pack()` (item 6/7) plus the two
-   `wrenchbuild/main.cpp` sites. Not started.
+   `write_collada`, delete `core/collada.cpp/h` entirely — **done and
+   verified.** Turned out `ColladaScene`/`ColladaMaterial` were still
+   load-bearing as the shared in-memory "recovered mesh" representation
+   across ~17 files (`engine/collision.*`, `engine/tie.*`,
+   `engine/moby_low.*`, `engine/tfrag_high.*`/`tfrag_debug.*`,
+   `gui/render_mesh.*`, `editor/instanced_collision_recovery.*`,
+   `editor/gui/collision_fixer.cpp`, `editor/level.cpp`, three
+   `wrenchbuild` files, `wrenchvis.cpp`) even though nothing parsed/wrote
+   COLLADA XML with them any more — so this ended up being a genuine
+   rename-and-relocate refactor (~33 files touched in the end, once three
+   more turned up with a vestigial, unused `#include <core/collada.h>`),
+   not just a delete. `ColladaScene`→`RecoveredScene`,
+   `ColladaMaterial`→`RecoveredMaterial`, `upload_collada_material(s)`→
+   `upload_recovered_material(s)`, moved into new `core/mesh_scene.h`/
+   `.cpp`. Dropped `read_collada()`/`write_collada()` and their
+   XML-parsing-only helpers entirely (confirmed zero remaining callers
+   first), plus two pieces of dead code found along the way: a
+   `read_collada_files()` utility in `assetmgr/asset_util.cpp`/`.h` with
+   zero callers anywhere (superseded by `read_glb_files()` long ago), and
+   a declared-but-never-defined `assert_collada_scenes_equal()` /
+   never-called `verify_fatal_collada_scenes_equal()` mismatched pair in
+   the old header/cpp. Finished off the last two real `read_collada`/
+   `write_collada` callers, the `extract_tfrags`/`extract_tie` debug
+   subcommands in `wrenchbuild/main.cpp`, converting them to write `.glb`
+   like `extract_moby`/`extract_shrub` already did. Also cleaned up a few
+   stale comments/error strings referencing the deleted functions/file
+   (including one in `engine/moby_low.cpp` unrelated to any of this
+   session's earlier work).
+   
+   Found and fixed one real latent bug this exposed:
+   `editor/instanced_collision_recovery.h` declared a function returning
+   `Opt<ColladaScene>` without including the header that defined the
+   type, silently relying on a transitive path through
+   `assetmgr/asset_util.h` → `assetmgr/asset.h`. That path broke when the
+   now-unused `core/collada.h` include was removed from `asset_util.h`
+   (as part of deleting the dead `read_collada_files()`) -- fixed by
+   including `core/mesh_scene.h` directly in the header that actually
+   uses the type, rather than relying on transitive luck.
+   
+   Built and functionally tested by the user: full build succeeded, ISO
+   extracted, levels opened and checked in the editor, ISO repacked --
+   all working.
 
 *Rationale:* writing new tfrag/tie **build** logic (Phase 2) against a
 format you're about to delete is wasted work. Do the migration first so
 the rebuild code is written once, against glTF.
+
+**Phase 1 is now fully DONE.**
 
 ### Phase 2 — Mesh/model packing completeness (the core value) — **NOT STARTED**
 6. **Tfrags**: decide the source representation for tfaces (coupled with
@@ -283,9 +319,9 @@ the rebuild code is written once, against glTF.
 ## One-paragraph summary of the critical path
 
 Land the in-flight WIP (done) → generalize the collision glTF helpers
-(done and verified) and finish migrating ties/tfrags off COLLADA
-(deleting `collada.cpp` once done) → use that to unblock full tfrag
-rebuild (the actual bottleneck) → apply the same fix to ties → moby
+(done and verified) and finish migrating ties/tfrags off COLLADA, deleting
+`core/collada.cpp/h` (all done and verified) → use that to unblock full
+tfrag rebuild (the actual bottleneck) → apply the same fix to ties → moby
 matrix/tristrip work can run in parallel the whole time. Independently,
 start the full `fs::path` cleanup and incremental-build work early since
 they're pure force-multipliers for every phase after them. Texture and

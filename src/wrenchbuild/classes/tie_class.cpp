@@ -56,14 +56,14 @@ static void unpack_tie_class(TieClassAsset& dest, InputStream& src, BuildConfig 
 	
 	std::vector<u8> buffer = src.read_multiple<u8>(0, src.size());
 	TieClass tie = read_tie_class(buffer, config.game());
-	ColladaScene scene = recover_tie_class(tie);
+	RecoveredScene scene = recover_tie_class(tie);
 	
-	// Ties are being migrated off COLLADA (see wrench-roadmap.md, Phase 1 item
-	// 3) -- recover_tie_class still produces a ColladaScene since it's shared
+	// Ties were migrated off COLLADA (see wrench-roadmap.md, Phase 1 item 3):
+	// recover_tie_class still produces a RecoveredScene since it's shared
 	// groundwork for the eventual tie build/pack side too, but here we convert
 	// it into a single-mesh .glb using the same shared GLTF::Mesh conversion
 	// helpers the collision code uses (core/gltf.h), rather than writing a
-	// mesh.dae file via write_collada.
+	// mesh.dae file via COLLADA XML.
 	auto [gltf, gltf_scene] = GLTF::create_default_scene(get_versioned_application_name("Wrench Build Tool"));
 	
 	std::vector<Material> gltf_materials = to_materials(scene.materials);

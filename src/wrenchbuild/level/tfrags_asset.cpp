@@ -57,7 +57,7 @@ static void unpack_tfrags(TfragsAsset& dest, InputStream& src, BuildConfig confi
 	
 	std::vector<u8> buffer = src.read_multiple<u8>(0, src.size());
 	Tfrags tfrags = read_tfrags(buffer, config.game());
-	ColladaScene scene = recover_tfrags(tfrags, TFRAG_NO_FLAGS);
+	RecoveredScene scene = recover_tfrags(tfrags, TFRAG_NO_FLAGS);
 	if (scene.meshes.empty()) {
 		// recover_tfrags() only emits a mesh if tfrags.fragments is non-empty;
 		// with no fragments there's nothing to write out, so just leave
@@ -66,13 +66,13 @@ static void unpack_tfrags(TfragsAsset& dest, InputStream& src, BuildConfig confi
 		return;
 	}
 	
-	// Tfrags are being migrated off COLLADA (see wrench-roadmap.md, Phase 1
-	// item 4), mirroring the tie migration in tie_class.cpp: recover_tfrags()
-	// still returns a ColladaScene (it's shared groundwork for the eventual
-	// tfrag build/pack side too), but here we convert its single mesh into a
-	// glTF one using the same shared conversion helpers the collision/tie
-	// code uses (core/gltf.h), and write mesh.glb instead of mesh.dae via
-	// write_collada().
+	// Tfrags were migrated off COLLADA (see wrench-roadmap.md, Phase 1 item
+	// 4), mirroring the tie migration in tie_class.cpp: recover_tfrags() still
+	// returns a RecoveredScene (it's shared groundwork for the eventual tfrag
+	// build/pack side too), but here we convert its single mesh into a glTF
+	// one using the same shared conversion helpers the collision/tie code
+	// uses (core/gltf.h), and write mesh.glb instead of mesh.dae via COLLADA
+	// XML.
 	auto [gltf, gltf_scene] = GLTF::create_default_scene(get_versioned_application_name("Wrench Build Tool"));
 	
 	std::vector<Material> gltf_materials = to_materials(scene.materials);
@@ -121,7 +121,7 @@ ByteRange pack_tfrags(
 		pack_asset_impl(input_stream, nullptr, nullptr, src.get_core(), config, nullptr);
 		Tfrags tfrags = read_tfrags(input_buffer, config.game());
 		
-		ColladaScene scene = recover_tfrags(tfrags, TFRAG_SEPARATE_MESHES);
+		RecoveredScene scene = recover_tfrags(tfrags, TFRAG_SEPARATE_MESHES);
 		if (tfrags_dest) {
 			*tfrags_dest = std::move(scene.meshes);
 		}

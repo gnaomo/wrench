@@ -22,6 +22,6 @@
 #include <engine/tfrag_low.h>
 
 bool tfrag_debug_output_enabled();
-ColladaScene recover_tfrags_debug(const Tfrags& tfrags);
+RecoveredScene recover_tfrags_debug(const Tfrags& tfrags);
 
 #endif

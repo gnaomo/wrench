@@ -16,7 +16,7 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// Collision-specific glue between the native (ColladaScene-style) Mesh
+// Collision-specific glue between the native (RecoveredScene-style) Mesh
 // representation used by engine/collision.cpp and the .glb-format
 // CollisionAsset. Used both by the asset (un)packer (wrenchbuild) and by
 // tools that need to load or author collision data directly, such as the
@@ -28,7 +28,7 @@
 // The generic Mesh <-> GLTF::Mesh conversion helpers that used to live here
 // (native_mesh_to_gltf_mesh/gltf_mesh_to_native_mesh) have moved to
 // core/gltf.h, since they have no collision-specific logic and other asset
-// types migrating off COLLADA (ties, tfrags) will want to reuse them too.
+// types that have since migrated off COLLADA (ties, tfrags) reuse them too.
 
 #ifndef WRENCHBUILD_LEVEL_COLLISION_MESH_H
 #define WRENCHBUILD_LEVEL_COLLISION_MESH_H

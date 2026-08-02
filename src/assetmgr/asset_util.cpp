@@ -117,29 +117,6 @@ std::string FileReference::read_text_file() const
 	return owner->read_text_file(path);
 }
 
-std::vector<ColladaScene*> read_collada_files(std::vector<std::unique_ptr<ColladaScene>>& owners, std::vector<FileReference> refs)
-{
-	std::vector<ColladaScene*> scenes;
-	for (size_t i = 0; i < refs.size(); i++) {
-		bool unique = true;
-		size_t j;
-		for (j = 0; j < refs.size(); j++) {
-			if (i > j && refs[i].owner == refs[j].owner && refs[i].path == refs[j].path) {
-				unique = false;
-				break;
-			}
-		}
-		if (unique) {
-			std::string xml = refs[i].read_text_file();
-			std::unique_ptr<ColladaScene>& owner = owners.emplace_back(std::make_unique<ColladaScene>(read_collada((char*) xml.data())));
-			scenes.emplace_back(owner.get());
-		} else {
-			scenes.emplace_back(scenes[j]);
-		}
-	}
-	return scenes;
-}
-
 std::vector<GLTF::ModelFile*> read_glb_files(std::vector<std::unique_ptr<GLTF::ModelFile>>& owners, std::vector<FileReference> refs)
 {
 	std::vector<GLTF::ModelFile*> model_files;

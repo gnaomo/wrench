@@ -19,7 +19,7 @@
 #ifndef WRENCHBUILD_LEVEL_COLLISION_ASSET_H
 #define WRENCHBUILD_LEVEL_COLLISION_ASSET_H
 
-#include <core/collada.h>
+#include <core/mesh_scene.h>
 #include <core/gltf.h>
 #include <engine/collision.h>
 #include <instancemgr/gameplay.h>

@@ -19,6 +19,7 @@
 #ifndef EDITOR_INSTANCED_COLLISION_RECOVERY_H
 #define EDITOR_INSTANCED_COLLISION_RECOVERY_H
 
+#include <core/mesh_scene.h>
 #include <assetmgr/asset_types.h>
 #include <instancemgr/instances.h>
 
@@ -69,7 +70,7 @@ struct ColParams
 std::vector<ColLevel> load_instance_collision_data(
 	BuildAsset& build, std::function<bool()>&& check_is_still_running);
 ColMappings generate_instance_collision_mappings(const std::vector<ColLevel>& levels);
-Opt<ColladaScene> build_instanced_collision(
+Opt<RecoveredScene> build_instanced_collision(
 	s32 type,
 	s32 o_class,
 	const ColParams& params,

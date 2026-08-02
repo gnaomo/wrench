@@ -233,7 +233,7 @@ void map_gltf_materials_to_wrench_materials(ModelFile& gltf, const std::vector<:
 // a plain (native) Mesh, without any material remapping. This was originally
 // collision-specific (collision_mesh.h/.cpp) but the conversion itself has no
 // collision-specific logic, so it's shared here for reuse by other asset
-// types migrating off COLLADA.
+// types that migrated off COLLADA (ties, tfrags).
 ::Mesh gltf_mesh_to_native_mesh(const Mesh& mesh);
 
 // Converts a plain (native) Mesh -- which may contain quads -- into a
@@ -253,12 +253,13 @@ void map_gltf_materials_to_wrench_materials(ModelFile& gltf, const std::vector<:
 // The output primitives always carry POSITION data, and additionally carry
 // NORMAL/COLOR_0/TEXCOORD_0 data whenever the corresponding MESH_HAS_NORMALS/
 // MESH_HAS_VERTEX_COLOURS/MESH_HAS_TEX_COORDS flag is set on the source mesh
-// -- mirroring which <source> elements the old COLLADA writer would emit
-// (see write_geometries in core/collada.cpp). Collision meshes don't set any
-// of those flags so this is a no-op for them, but callers of other asset
-// types (e.g. ties) that do carry texture coordinates or normals need this
-// to avoid silently dropping that data on the round trip through the .glb
-// file.
+// -- mirroring which <source> elements the old COLLADA writer used to emit
+// (core/collada.cpp's write_geometries(), before that file was deleted once
+// nothing called into it any more -- see wrench-roadmap.md Phase 1 item 5).
+// Collision meshes don't set any of those flags so this is a no-op for them,
+// but callers of other asset types (e.g. ties, tfrags) that do carry texture
+// coordinates or normals need this to avoid silently dropping that data on
+// the round trip through the .glb file.
 Mesh native_mesh_to_gltf_mesh(
 	ModelFile& gltf, const ::Mesh& mesh, const std::vector<::Material>& materials);
 

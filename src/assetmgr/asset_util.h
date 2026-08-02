@@ -27,7 +27,6 @@
 #include <core/gltf.h>
 #include <core/util.h>
 #include <core/stream.h>
-#include <core/collada.h>
 #include <core/filesystem.h>
 
 struct AssetType
@@ -87,7 +86,6 @@ struct FileReference
 	fs::path path;
 };
 
-std::vector<ColladaScene*> read_collada_files(std::vector<std::unique_ptr<ColladaScene>>& owners, std::vector<FileReference> refs);
 std::vector<GLTF::ModelFile*> read_glb_files(std::vector<std::unique_ptr<GLTF::ModelFile>>& owners, std::vector<FileReference> refs);
 
 enum AssetAccessorMode

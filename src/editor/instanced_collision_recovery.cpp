@@ -128,7 +128,7 @@ struct ColVal
 	s32 hits;
 };
 
-Opt<ColladaScene> build_instanced_collision(
+Opt<RecoveredScene> build_instanced_collision(
 	s32 type,
 	s32 o_class,
 	const ColParams& params,
@@ -205,7 +205,7 @@ Opt<ColladaScene> build_instanced_collision(
 	}
 	
 	// Generate the scene.
-	ColladaScene scene;
+	RecoveredScene scene;
 	Mesh& mesh = scene.meshes.emplace_back();
 	mesh.name = "collision";
 	mesh.flags |= MESH_HAS_QUADS;

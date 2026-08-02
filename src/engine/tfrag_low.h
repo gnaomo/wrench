@@ -21,7 +21,7 @@
 
 #include <core/vif.h>
 #include <core/buffer.h>
-#include <core/collada.h>
+#include <core/mesh_scene.h>
 #include <core/build_config.h>
 #include <engine/basic_types.h>
 #include <engine/gif.h>

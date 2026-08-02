@@ -48,9 +48,9 @@ public:
 	
 	// Output
 	bool success = false;
-	ColladaScene scene;
+	RecoveredScene scene;
 	
-	Opt<ColladaScene> get_output();
+	Opt<RecoveredScene> get_output();
 	
 private:
 	enum ThreadState { // condition                                  description
@@ -81,9 +81,9 @@ static ColParams params;
 
 static std::tuple<s32, s32, Asset*> class_selector();
 static void generate_bounding_box(const Mesh& mesh);
-static std::string write_instanced_collision(Asset& asset, const ColladaScene& collision_scene);
+static std::string write_instanced_collision(Asset& asset, const RecoveredScene& collision_scene);
 template <typename ThisAsset>
-static std::string write_instanced_collision_for_class_of_type(ThisAsset& asset, const ColladaScene& collision_scene);
+static std::string write_instanced_collision_for_class_of_type(ThisAsset& asset, const RecoveredScene& collision_scene);
 
 static void row(const char* name)
 {
@@ -149,10 +149,10 @@ void collision_fixer()
 	ImGui::PopStyleVar();
 	ImGui::PopStyleColor();
 	
-	static ColladaScene collada_scene;
+	static RecoveredScene recovered_scene;
 	static std::string popup_message;
 	if (asset && ImGui::Button("Write Collision Mesh")) {
-		popup_message = write_instanced_collision(*asset, collada_scene);
+		popup_message = write_instanced_collision(*asset, recovered_scene);
 		ImGui::OpenPopup("Collision Written");
 	}
 	
@@ -179,12 +179,12 @@ void collision_fixer()
 	}
 	
 	if (waiting_for_completion && !fixer_thread.is_running()) {
-		Opt<ColladaScene> out = fixer_thread.get_output();
+		Opt<RecoveredScene> out = fixer_thread.get_output();
 		if (out.has_value()) {
-			collada_scene = std::move(*out);
-			verify_fatal(collada_scene.meshes.size() == 1);
-			collision_render_mesh = upload_mesh(collada_scene.meshes[0], true);
-			collision_materials = upload_collada_materials(collada_scene.materials, {});
+			recovered_scene = std::move(*out);
+			verify_fatal(recovered_scene.meshes.size() == 1);
+			collision_render_mesh = upload_mesh(recovered_scene.meshes[0], true);
+			collision_materials = upload_recovered_materials(recovered_scene.materials, {});
 			g_app->collision_fixer_previews.collision_mesh = &collision_render_mesh;
 			g_app->collision_fixer_previews.collision_materials = &collision_materials;
 			waiting_for_completion = false;
@@ -257,7 +257,7 @@ void CollisionFixerThread::run()
 		m_state = RECOVERING;
 	}
 	
-	Opt<ColladaScene> s;
+	Opt<RecoveredScene> s;
 	if (type > -1 && o_class > -1) {
 		s = build_instanced_collision(type, o_class, params, m_mappings, m_levels, check_is_still_running);
 	}
@@ -292,7 +292,7 @@ void CollisionFixerThread::reset()
 	m_mappings.classes[COL_SHRUB].clear();
 }
 
-Opt<ColladaScene> CollisionFixerThread::get_output()
+Opt<RecoveredScene> CollisionFixerThread::get_output()
 {
 	std::lock_guard<std::mutex> g(m_mutex);
 	if (success) {
@@ -423,7 +423,7 @@ static void generate_bounding_box(const Mesh& mesh)
 	params.bounding_box_size = (max - min) * 2.f;
 }
 
-static std::string write_instanced_collision(Asset& asset, const ColladaScene& collision_scene)
+static std::string write_instanced_collision(Asset& asset, const RecoveredScene& collision_scene)
 {
 	std::string message;
 	
@@ -441,7 +441,7 @@ static std::string write_instanced_collision(Asset& asset, const ColladaScene& c
 
 template <typename ThisAsset>
 static std::string write_instanced_collision_for_class_of_type(
-	ThisAsset& asset, const ColladaScene& collision_scene)
+	ThisAsset& asset, const RecoveredScene& collision_scene)
 {
 	std::string message;
 	
@@ -477,7 +477,7 @@ static std::string write_instanced_collision_for_class_of_type(
 	message += stringf("Written file: %s\n", src.path.string().c_str());
 	
 	CollectionAsset& materials = collision_asset->materials();
-	for (const ColladaMaterial& material : collision_scene.materials) {
+	for (const RecoveredMaterial& material : collision_scene.materials) {
 		CollisionMaterialAsset& asset = materials.child<CollisionMaterialAsset>(material.name.c_str());
 		asset.set_name(material.name);
 		asset.set_id(material.collision_id);

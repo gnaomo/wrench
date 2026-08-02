@@ -68,7 +68,7 @@ static s32 map_face_to_tface(
 	const std::vector<TfragVertexEx>& vertices,
 	const std::vector<TfragVertexInfo>& vertex_infos);
 
-ColladaScene recover_tfrags(const Tfrags& tfrags, TfragRecoveryFlags flags)
+RecoveredScene recover_tfrags(const Tfrags& tfrags, TfragRecoveryFlags flags)
 {
 	if (tfrag_debug_output_enabled()) {
 		return recover_tfrags_debug(tfrags);
@@ -81,10 +81,10 @@ ColladaScene recover_tfrags(const Tfrags& tfrags, TfragRecoveryFlags flags)
 		}
 	}
 	
-	ColladaScene scene;
+	RecoveredScene scene;
 	
 	for (s32 i = 0; i < texture_count; i++) {
-		ColladaMaterial& material = scene.materials.emplace_back();
+		RecoveredMaterial& material = scene.materials.emplace_back();
 		material.name = stringf("%d", i);
 		material.surface = MaterialSurface(i);
 		

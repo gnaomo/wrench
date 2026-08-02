@@ -23,7 +23,7 @@
 static GcUyaDlTieClassHeader read_tie_header(Buffer src, Game game);
 static TiePacket read_tie_packet(Buffer src, const TiePacketHeader& header);
 static void write_tie_packet(OutBuffer dest, const TiePacket& packet);
-static ColladaScene recover_tie(const TieClass& tie);
+static RecoveredScene recover_tie(const TieClass& tie);
 
 TieClass read_tie_class(Buffer src, Game game)
 {
@@ -201,12 +201,12 @@ static void write_tie_packet(OutBuffer dest, const TiePacket& packet)
 	
 }
 
-ColladaScene recover_tie_class(const TieClass& tie)
+RecoveredScene recover_tie_class(const TieClass& tie)
 {
-	ColladaScene scene;
+	RecoveredScene scene;
 	
 	for (s32 i = 0; i < (s32) tie.ad_gifs.size(); i++) {
-		ColladaMaterial& material = scene.materials.emplace_back();
+		RecoveredMaterial& material = scene.materials.emplace_back();
 		material.name = stringf("%d", i);
 		material.surface = MaterialSurface(i);
 	}

@@ -22,7 +22,7 @@
 #include <map>
 
 #include <core/util.h>
-#include <core/collada.h>
+#include <core/mesh_scene.h>
 #include <core/buffer.h>
 #include <core/texture.h>
 #include <core/filesystem.h>

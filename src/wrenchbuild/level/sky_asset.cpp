@@ -19,7 +19,7 @@
 #include <map>
 
 #include <core/png.h>
-#include <core/collada.h>
+#include <core/mesh_scene.h>
 #include <engine/sky.h>
 #include <toolwads/wads.h>
 #include <wrenchbuild/asset_unpacker.h>

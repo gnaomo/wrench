@@ -100,7 +100,7 @@ static void write_collision_mesh(OutBuffer dest, CollisionOctants& octants);
 static std::vector<HeroCollisionGroup> read_hero_collision_groups(Buffer buffer);
 static void write_hero_collision_groups(OutBuffer dest, const std::vector<HeroCollisionGroup>& groups);
 static CollisionOutput collision_to_scene(const CollisionOctants& octants, const std::vector<HeroCollisionGroup>& groups);
-static CollisionOctants build_collision_octants(const ColladaScene& scene, const std::string& name);
+static CollisionOctants build_collision_octants(const RecoveredScene& scene, const std::string& name);
 static std::vector<HeroCollisionGroup> build_hero_collision_groups(const std::vector<const Mesh*>& meshes);
 static bool test_tri_octant_intersection(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2);
 static CollisionOctant& lookup_octant(CollisionOctants& octants, s32 x, s32 y, s32 z);
@@ -508,12 +508,12 @@ static CollisionOutput collision_to_scene(const CollisionOctants& octants, const
 	return output;
 }
 
-std::vector<ColladaMaterial> create_collision_materials()
+std::vector<RecoveredMaterial> create_collision_materials()
 {
-	std::vector<ColladaMaterial> materials;
+	std::vector<RecoveredMaterial> materials;
 	
 	for (s32 i = 0; i < 256; i++) {
-		ColladaMaterial& material = materials.emplace_back();
+		RecoveredMaterial& material = materials.emplace_back();
 		material.name = stringf("col_%x", i);
 		material.surface.type = MaterialSurfaceType::COLOUR;
 		// Colouring logic taken from Replanetizer:
@@ -525,7 +525,7 @@ std::vector<ColladaMaterial> create_collision_materials()
 		material.collision_id = i;
 	}
 	
-	ColladaMaterial& hero_group_collision = materials.emplace_back();
+	RecoveredMaterial& hero_group_collision = materials.emplace_back();
 	hero_group_collision.name = "hero_group_collision";
 	hero_group_collision.surface.type = MaterialSurfaceType::COLOUR;
 	hero_group_collision.surface.colour.r = 0.f;
@@ -536,7 +536,7 @@ std::vector<ColladaMaterial> create_collision_materials()
 	return materials;
 }
 
-static CollisionOctants build_collision_octants(const ColladaScene& scene, const std::string& name)
+static CollisionOctants build_collision_octants(const RecoveredScene& scene, const std::string& name)
 {
 	start_timer("build collision");
 	
@@ -547,7 +547,7 @@ static CollisionOctants build_collision_octants(const ColladaScene& scene, const
 		}
 		
 		for (const SubMesh& submesh : mesh.submeshes) {
-			const ColladaMaterial& material = scene.materials.at(submesh.material);
+			const RecoveredMaterial& material = scene.materials.at(submesh.material);
 			verify(material.collision_id >= 0 && material.collision_id <= 255,
 				"Invalid collision ID.");
 			u8 type = (u8) material.collision_id;

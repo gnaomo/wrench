@@ -22,7 +22,7 @@
 #include <variant>
 #include <core/vif.h>
 #include <core/buffer.h>
-#include <core/collada.h>
+#include <core/mesh_scene.h>
 #include <core/build_config.h>
 #include <engine/basic_types.h>
 #include <engine/gif.h>
@@ -193,6 +193,6 @@ struct TieClass
 
 TieClass read_tie_class(Buffer src, Game game);
 void write_tie_class(OutBuffer dest, const TieClass& tie);
-ColladaScene recover_tie_class(const TieClass& tie);
+RecoveredScene recover_tie_class(const TieClass& tie);
 
 #endif

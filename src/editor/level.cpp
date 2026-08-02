@@ -61,7 +61,7 @@ void Level::read(LevelAsset& asset, Game g)
 		if (!collision_mesh.vertices.empty()) {
 			chunk.collision = upload_mesh(collision_mesh, true);
 		}
-		chunk.collision_materials = upload_collada_materials(create_collision_materials(), {});
+		chunk.collision_materials = upload_recovered_materials(create_collision_materials(), {});
 		
 		// Collect the distinct collision surface ids used in this chunk so the
 		// collision id legend/filter UI knows what to list without having to
@@ -158,9 +158,9 @@ void Level::read(LevelAsset& asset, Game g)
 				Opt<Texture> icon = read_png(*stream);
 				if (icon.has_value()) {
 					std::vector<Texture> textures = { std::move(*icon) };
-					ColladaMaterial mat;
+					RecoveredMaterial mat;
 					mat.surface = MaterialSurface(0);
-					ec->icon = upload_collada_material(mat, textures);
+					ec->icon = upload_recovered_material(mat, textures);
 				}
 			}
 			auto pvar_type = types.find(stringf("update%d", moby.id()));
@@ -333,9 +333,10 @@ Opt<EditorClass> load_tie_editor_class(const TieClassAsset& tie)
 	// Ties (unlike moby/shrub) also keep a copy of the native CPU-side mesh
 	// around on the EditorClass, since the instanced collision fixer UI
 	// (editor/gui/collision_fixer.cpp) needs raw vertex positions to compute
-	// a bounding box, and previously got that for free from the ColladaScene
-	// returned by read_collada(). Derive it from the same glTF mesh used for
-	// rendering so the two stay in sync.
+	// a bounding box, and previously got that for free from the
+	// RecoveredScene the old COLLADA-based version of this code parsed
+	// directly. Derive it from the same glTF mesh used for rendering so the
+	// two stay in sync.
 	EditorClass editor_tie;
 	editor_tie.mesh = gltf_mesh_to_native_mesh(mesh);
 	editor_tie.render_mesh = upload_gltf_mesh(mesh, true);

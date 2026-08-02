@@ -22,6 +22,7 @@
 #include <core/timer.h>
 #include <core/release.h>
 #include <core/stream.h>
+#include <core/gltf.h>
 #include <core/stdout_thread.h>
 #include <assetmgr/asset.h>
 #include <assetmgr/asset_types.h>
@@ -625,9 +626,21 @@ static void extract_tfrags(const fs::path& input_path, const fs::path& output_pa
 {
 	auto bin = read_file(input_path.string().c_str());
 	Tfrags tfrags = read_tfrags(bin, game);
-	ColladaScene scene = recover_tfrags(tfrags, TFRAG_NO_FLAGS);
-	auto xml = write_collada(scene);
-	write_file(output_path, xml, true);
+	RecoveredScene scene = recover_tfrags(tfrags, TFRAG_NO_FLAGS);
+	verify(!scene.meshes.empty(), "No tfrags to extract (input file has no fragments).");
+	
+	auto [gltf, gltf_scene] = GLTF::create_default_scene(get_versioned_application_name("Wrench Build Tool"));
+	
+	std::vector<Material> gltf_materials = to_materials(scene.materials);
+	GLTF::Mesh mesh = native_mesh_to_gltf_mesh(gltf, scene.meshes.at(0), gltf_materials);
+	
+	gltf_scene->nodes.emplace_back((s32) gltf.nodes.size());
+	GLTF::Node& node = gltf.nodes.emplace_back();
+	node.mesh = (s32) gltf.meshes.size();
+	gltf.meshes.emplace_back(std::move(mesh));
+	
+	auto glb = GLTF::write_glb(gltf);
+	write_file(output_path, glb, false);
 }
 
 static void extract_moby(const fs::path& input_path, const fs::path& output_path, Game game)
@@ -682,9 +695,21 @@ static void extract_tie(const fs::path& input_path, const fs::path& output_path,
 {
 	auto bin = read_file(input_path.string().c_str());
 	TieClass tie = read_tie_class(bin, game);
-	ColladaScene scene = recover_tie_class(tie);
-	auto xml = write_collada(scene);
-	write_file(output_path, xml, true);
+	RecoveredScene scene = recover_tie_class(tie);
+	verify(!scene.meshes.empty(), "No mesh to extract.");
+	
+	auto [gltf, gltf_scene] = GLTF::create_default_scene(get_versioned_application_name("Wrench Build Tool"));
+	
+	std::vector<Material> gltf_materials = to_materials(scene.materials);
+	GLTF::Mesh mesh = native_mesh_to_gltf_mesh(gltf, scene.meshes.at(0), gltf_materials);
+	
+	gltf_scene->nodes.emplace_back((s32) gltf.nodes.size());
+	GLTF::Node& node = gltf.nodes.emplace_back();
+	node.mesh = (s32) gltf.meshes.size();
+	gltf.meshes.emplace_back(std::move(mesh));
+	
+	auto glb = GLTF::write_glb(gltf);
+	write_file(output_path, glb, false);
 }
 
 static void extract_shrub(const fs::path& input_path, const fs::path& output_path)
@@ -797,7 +822,7 @@ static void print_usage(bool developer_subcommands)
 		puts("   Record statistics about the memory used by mounting asset banks.");
 		puts("");
 		puts(" extract_tfrags <input path> -o <output path>");
-		puts("   Convert packed tfrags to a .dae file.");
+		puts("   Convert packed tfrags to a .glb file.");
 		puts("");
 		puts(" extract_moby <input path> -o <output path> -g <game>");
 		puts("   Convert a packed moby to a .glb file.");
@@ -806,7 +831,7 @@ static void print_usage(bool developer_subcommands)
 		puts("   Convert a packed moby to a .glb file.");
 		puts("");
 		puts(" extract_tie <input path> -o <output path>");
-		puts("   Convert a packed tie to a .dae file.");
+		puts("   Convert a packed tie to a .glb file.");
 		puts("");
 		puts(" extract_shrub <input path> -o <output path>");
 		puts("   Convert a packed shrub to a .glb file.");

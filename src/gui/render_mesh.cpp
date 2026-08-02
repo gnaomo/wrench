@@ -136,12 +136,12 @@ RenderMesh upload_gltf_mesh(const GLTF::Mesh& mesh, bool generate_normals)
 	return render_mesh;
 }
 
-std::vector<RenderMaterial> upload_collada_materials(
-	const std::vector<ColladaMaterial>& materials, const std::vector<Texture>& textures)
+std::vector<RenderMaterial> upload_recovered_materials(
+	const std::vector<RecoveredMaterial>& materials, const std::vector<Texture>& textures)
 {
 	std::vector<RenderMaterial> rms;
-	for (const ColladaMaterial& material : materials) {
-		rms.emplace_back(upload_collada_material(material, textures));
+	for (const RecoveredMaterial& material : materials) {
+		rms.emplace_back(upload_recovered_material(material, textures));
 	}
 	return rms;
 }
@@ -156,8 +156,8 @@ std::vector<RenderMaterial> upload_materials(
 	return render_materials;
 }
 
-RenderMaterial upload_collada_material(
-	const ColladaMaterial& material, const std::vector<Texture>& textures)
+RenderMaterial upload_recovered_material(
+	const RecoveredMaterial& material, const std::vector<Texture>& textures)
 {
 	RenderMaterial rm;
 	s32 texture_index;

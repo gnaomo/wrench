@@ -32,7 +32,7 @@ void append_collision(Mesh& dest, const CollisionAsset& src, const glm::mat4& ma
 	GLTF::Mesh& mesh = gltf.meshes.at(*node->mesh);
 	
 	// Build a name -> collision_id lookup table from the material assets. This
-	// mirrors the id remapping that used to happen directly on ColladaMaterial
+	// mirrors the id remapping that used to happen directly on RecoveredMaterial
 	// objects.
 	std::map<std::string, s32> material_name_to_id;
 	src.get_materials().for_each_logical_child_of_type<CollisionMaterialAsset>([&](const CollisionMaterialAsset& asset) {

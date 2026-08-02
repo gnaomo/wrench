@@ -28,6 +28,6 @@ enum TfragRecoveryFlags
 	TFRAG_SEPARATE_MESHES = 1 << 0
 };
 
-ColladaScene recover_tfrags(const Tfrags& tfrags, TfragRecoveryFlags flags);
+RecoveredScene recover_tfrags(const Tfrags& tfrags, TfragRecoveryFlags flags);
 
 #endif

@@ -21,7 +21,7 @@
 
 #include <core/vif.h>
 #include <core/buffer.h>
-#include <core/collada.h>
+#include <core/mesh_scene.h>
 #include <core/build_config.h>
 #include <engine/basic_types.h>
 #include <engine/moby_animation.h>
@@ -201,8 +201,8 @@ MobyMeshInfo write_moby_mesh_section(
 	f32 scale,
 	MobyFormat format);
 
-ColladaScene recover_moby_class(const MobyClassData& moby, s32 o_class, s32 texture_count);
-MobyClassData build_moby_class(const ColladaScene& scene);
+RecoveredScene recover_moby_class(const MobyClassData& moby, s32 o_class, s32 texture_count);
+MobyClassData build_moby_class(const RecoveredScene& scene);
 
 }
 

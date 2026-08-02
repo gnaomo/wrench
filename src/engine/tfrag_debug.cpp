@@ -59,7 +59,7 @@ bool tfrag_debug_output_enabled()
 #endif
 }
 
-ColladaScene recover_tfrags_debug(const Tfrags& tfrags)
+RecoveredScene recover_tfrags_debug(const Tfrags& tfrags)
 {
 	s32 texture_count = 0;
 	for (const Tfrag& tfrag : tfrags.fragments) {
@@ -68,10 +68,10 @@ ColladaScene recover_tfrags_debug(const Tfrags& tfrags)
 		}
 	}
 	
-	ColladaScene scene;
+	RecoveredScene scene;
 	
 	for (s32 i = 0; i < texture_count; i++) {
-		ColladaMaterial& material = scene.materials.emplace_back();
+		RecoveredMaterial& material = scene.materials.emplace_back();
 		material.name = stringf("%d", i);
 		material.surface = MaterialSurface(i);
 		
@@ -79,7 +79,7 @@ ColladaScene recover_tfrags_debug(const Tfrags& tfrags)
 	}
 	
 	if (texture_count == 0) {
-		ColladaMaterial& dummy = scene.materials.emplace_back();
+		RecoveredMaterial& dummy = scene.materials.emplace_back();
 		dummy.name = "dummy";
 		dummy.surface = MaterialSurface(glm::vec4(1.f, 1.f, 1.f, 1.f));
 	}

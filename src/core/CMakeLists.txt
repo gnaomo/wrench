@@ -8,7 +8,7 @@ add_library(wrenchcore STATIC
 	util/error_util.cpp
 	util/crash_handler.cpp
 	mesh.cpp
-	collada.cpp
+	mesh_scene.cpp
 	timer.cpp
 	png.cpp
 	texture.cpp

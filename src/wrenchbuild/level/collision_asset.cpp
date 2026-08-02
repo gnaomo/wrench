@@ -78,7 +78,7 @@ static void unpack_collision_asset(CollisionAsset& dest, InputStream& src, Build
 	}
 	
 	CollectionAsset& materials = dest.materials();
-	for (ColladaMaterial& material : output.scene.materials) {
+	for (RecoveredMaterial& material : output.scene.materials) {
 		CollisionMaterialAsset& asset = materials.child<CollisionMaterialAsset>(material.name.c_str());
 		asset.set_name(material.name);
 		asset.set_id(material.collision_id);
@@ -101,10 +101,10 @@ void pack_level_collision(
 	const Gameplay* gameplay,
 	s32 chunk)
 {
-	ColladaScene scene;
+	RecoveredScene scene;
 	
 	for (s32 i = 0; i < 256; i++) {
-		ColladaMaterial& material = scene.materials.emplace_back();
+		RecoveredMaterial& material = scene.materials.emplace_back();
 		material.collision_id = i;
 	}
 	

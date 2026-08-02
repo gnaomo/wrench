@@ -573,32 +573,32 @@ static s64 write_moby_joints(OutBuffer dest, const std::vector<MobyJointEntry>& 
 
 // *****************************************************************************
 
-ColladaScene recover_moby_class(const MobyClassData& moby, s32 o_class, s32 texture_count)
+RecoveredScene recover_moby_class(const MobyClassData& moby, s32 o_class, s32 texture_count)
 {
-	ColladaScene scene;
+	RecoveredScene scene;
 	
 	// Used for when the texture index stored in a GS primitive is -1.
-	ColladaMaterial& none = scene.materials.emplace_back();
+	RecoveredMaterial& none = scene.materials.emplace_back();
 	none.name = "none";
 	none.surface = MaterialSurface(glm::vec4(1, 1, 1, 1));
 	// Used for when there're more textures referenced than are listed in the
 	// moby class table. This happens for R&C2 ship parts.
-	ColladaMaterial& dummy = scene.materials.emplace_back();
+	RecoveredMaterial& dummy = scene.materials.emplace_back();
 	dummy.name = "dummy";
 	dummy.surface = MaterialSurface(glm::vec4(0.5, 0.5, 0.5, 1));
 	
 	for (s32 texture = 0; texture < texture_count; texture++) {
-		ColladaMaterial& mat = scene.materials.emplace_back();
+		RecoveredMaterial& mat = scene.materials.emplace_back();
 		mat.name = "mat_" + std::to_string(texture);
 		mat.surface = MaterialSurface(texture);
 	}
 	for (s32 texture = 0; texture < texture_count; texture++) {
-		ColladaMaterial& chrome = scene.materials.emplace_back();
+		RecoveredMaterial& chrome = scene.materials.emplace_back();
 		chrome.name = "chrome_" + std::to_string(texture);
 		chrome.surface = MaterialSurface(texture);
 	}
 	for (s32 texture = 0; texture < texture_count; texture++) {
-		ColladaMaterial& glass = scene.materials.emplace_back();
+		RecoveredMaterial& glass = scene.materials.emplace_back();
 		glass.name = "glass_" + std::to_string(texture);
 		glass.surface = MaterialSurface(texture);
 	}
@@ -625,7 +625,7 @@ ColladaScene recover_moby_class(const MobyClassData& moby, s32 o_class, s32 text
 	return scene;
 }
 
-MobyClassData build_moby_class(const ColladaScene& scene)
+MobyClassData build_moby_class(const RecoveredScene& scene)
 {
 	const Mesh* high_lod_mesh = nullptr;
 	const Mesh* low_lod_mesh = nullptr;
@@ -637,7 +637,7 @@ MobyClassData build_moby_class(const ColladaScene& scene)
 			low_lod_mesh = &mesh;
 		}
 	}
-	verify(high_lod_mesh, "Collada file doesn't contain a 'high_lod' node.");
+	verify(high_lod_mesh, "Recovered scene doesn't contain a 'high_lod' node.");
 	
 	MobyClassData moby;
 	//moby.mesh.high_lod = build_moby_packets(*high_lod_mesh, scene.materials);

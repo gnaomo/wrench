@@ -116,7 +116,7 @@ static std::vector<OcclChunk> load_chunks(const CollectionAsset& collection, Gam
 					std::unique_ptr<InputStream> stream = binary_asset->src().open_binary_file_for_reading();
 					std::vector<u8> buffer = stream->read_multiple<u8>(0, stream->size());
 					Tfrags tfrags = read_tfrags(buffer, game);
-					ColladaScene scene = recover_tfrags(tfrags, TFRAG_SEPARATE_MESHES);
+					RecoveredScene scene = recover_tfrags(tfrags, TFRAG_SEPARATE_MESHES);
 					OcclChunk& dest = chunks.emplace_back();
 					dest.tfrags = std::move(scene.meshes);
 				} else {

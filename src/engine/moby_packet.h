@@ -21,7 +21,7 @@
 
 #include <core/mesh.h>
 #include <core/buffer.h>
-#include <core/collada.h>
+#include <core/mesh_scene.h>
 #include <engine/gif.h>
 #include <engine/moby_vertex.h>
 #include <engine/moby_skinning.h>

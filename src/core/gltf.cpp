@@ -314,6 +314,25 @@ DefaultScene create_default_scene(const char* generator)
 	return result;
 }
 
+void create_placeholder_material_for_invalid_material_indices(ModelFile& gltf)
+{
+	Opt<GLTF::MaterialIndex> placeholder_material_index;
+	for (GLTF::Mesh& mesh : gltf.meshes) {
+		for (GLTF::MeshPrimitive& primitive : mesh.primitives) {
+			if (primitive.material.has_value() && (*primitive.material < 0 || *primitive.material >= gltf.materials.size())) {
+				if (!placeholder_material_index.has_value()) {
+					placeholder_material_index = (GLTF::MaterialIndex) gltf.materials.size();
+					GLTF::Material& placeholder_material = gltf.materials.emplace_back();
+					placeholder_material.name = "error";
+					MaterialPbrMetallicRoughness& pbr = placeholder_material.pbr_metallic_roughness.emplace();
+					pbr.base_color_factor = glm::vec4(1.f, 0.f, 1.f, 1.f);
+				}
+				primitive.material = placeholder_material_index;
+			}
+		}
+	}
+}
+
 Node* lookup_node(ModelFile& gltf, const char* name)
 {
 	for (Node& node : gltf.nodes) {

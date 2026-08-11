@@ -223,6 +223,10 @@ std::vector<u8> write_glb(const ModelFile& gltf);
 // Create a model file with a single scene in it.
 DefaultScene create_default_scene(const char* generator);
 
+// Find any mesh primitives with invalid material indices, and create a
+// placeholder pink material to use for them as instead.
+void create_placeholder_material_for_invalid_material_indices(ModelFile& gltf);
+
 // Lookup glTF objects by their name.
 Node* lookup_node(ModelFile& gltf, const char* name);
 Mesh* lookup_mesh(ModelFile& gltf, const char* name);

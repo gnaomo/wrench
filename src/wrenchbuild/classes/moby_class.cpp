@@ -138,6 +138,7 @@ static void unpack_phat_class(MobyClassAsset& dest, InputStream& src, BuildConfi
 	}
 
 	handle_special_materials(gltf);
+	GLTF::create_placeholder_material_for_invalid_material_indices(gltf);
 	
 	std::vector<u8> glb = GLTF::write_glb(gltf);
 	auto [stream, ref] = dest.file().open_binary_file_for_writing("mesh.glb");
@@ -166,6 +167,7 @@ static void unpack_mesh_only_class(
 	}
 
 	handle_special_materials(gltf);
+	GLTF::create_placeholder_material_for_invalid_material_indices(gltf);
 	
 	std::vector<u8> glb = GLTF::write_glb(gltf);
 	auto [stream, ref] = dest.file().open_binary_file_for_writing("mesh.glb");

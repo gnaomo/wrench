@@ -39,8 +39,8 @@ static void unpack_moby_mesh(
 	bool animated,
 	const std::string name);
 static void pack_mesh_only_class(OutputStream& dest, const MobyClassAsset& src, BuildConfig config);
-static s32 count_materials(const CollectionAsset& materials);
 static void unpack_materials(CollectionAsset& materials, GLTF::ModelFile& gltf);
+static void handle_special_materials(GLTF::ModelFile& gltf);
 static bool test_moby_class_core(
 	std::vector<u8>& src, AssetType type, BuildConfig config, const char* hint, AssetTestMode mode);
 
@@ -118,11 +118,6 @@ static void unpack_phat_class(MobyClassAsset& dest, InputStream& src, BuildConfi
 {
 	unpack_asset_impl(dest.core<BinaryAsset>(), src, nullptr, config);
 	
-	s32 texture_count = 0;
-	if (!g_asset_unpacker.dump_binaries && dest.has_materials()) {
-		texture_count = count_materials(dest.get_materials());
-	}
-	
 	std::vector<u8> buffer = src.read_multiple<u8>(0, src.size());
 	MOBY::MobyClassData data = MOBY::read_class(buffer, config.game());
 	
@@ -138,9 +133,11 @@ static void unpack_phat_class(MobyClassAsset& dest, InputStream& src, BuildConfi
 		unpack_moby_mesh(gltf, *scene, data.bangles[i].low_lod, data.scale, animated, stringf("bangle_%zu_low_lod", i));
 	}
 	
-	if (!g_asset_unpacker.dump_binaries && dest.has_materials()) {
+	if (dest.has_materials()) {
 		unpack_materials(dest.get_materials(), gltf);
 	}
+
+	handle_special_materials(gltf);
 	
 	std::vector<u8> glb = GLTF::write_glb(gltf);
 	auto [stream, ref] = dest.file().open_binary_file_for_writing("mesh.glb");
@@ -167,22 +164,12 @@ static void unpack_mesh_only_class(
 	if (!g_asset_unpacker.dump_binaries && dest.has_materials()) {
 		unpack_materials(dest.get_materials(), gltf);
 	}
+
+	handle_special_materials(gltf);
 	
 	std::vector<u8> glb = GLTF::write_glb(gltf);
 	auto [stream, ref] = dest.file().open_binary_file_for_writing("mesh.glb");
 	stream->write_v(glb);
-	
-	//MobyClassCoreAsset& core = dest.core<MobyClassCoreAsset>();
-	//
-	//MeshAsset& moby_mesh = core.mesh();
-	//moby_mesh.set_name("moby");
-	//moby_mesh.set_src(ref);
-	//
-	//MeshAsset& moby_low_lod_mesh = core.low_lod_mesh();
-	//moby_low_lod_mesh.set_name("moby_low_lod");
-	//moby_low_lod_mesh.set_src(ref);
-	//
-	//core.set_scale(scale);
 }
 
 static void unpack_moby_mesh(
@@ -232,19 +219,6 @@ static void pack_mesh_only_class(OutputStream& dest, const MobyClassAsset& src, 
 	dest.write_v(buffer);
 }
 
-static s32 count_materials(const CollectionAsset& materials)
-{
-	s32 texture_count = 0;
-	for (s32 i = 0; i < 16; i++) {
-		if (materials.has_child(i)) {
-			texture_count++;
-		} else {
-			break;
-		}
-	}
-	return texture_count;
-}
-
 static void unpack_materials(CollectionAsset& materials, GLTF::ModelFile& gltf)
 {
 	for (s32 i = 0; i < 16; i++) {
@@ -269,6 +243,33 @@ static void unpack_materials(CollectionAsset& materials, GLTF::ModelFile& gltf)
 		image.uri = material_asset.diffuse().src().path.string();
 		
 		material_asset.set_name(*material.name);
+	}
+}
+
+static void handle_special_materials(GLTF::ModelFile& gltf)
+{
+	std::optional<GLTF::MaterialIndex> special_material_indices[3];
+	static const char* special_material_names[3] = { "none", "chrome", "glass" };
+	static const glm::vec4 special_material_colours[3] =
+			{ glm::vec4(1.f, 0.f, 1.f, 1.f), glm::vec4(0.5f, 0.5f, 0.5f, 1.f), glm::vec4(1.f, 1.f, 1.f, 1.f) };
+	
+	for (GLTF::Mesh& mesh : gltf.meshes) {
+		for (GLTF::MeshPrimitive& primitive : mesh.primitives) {
+			if (primitive.material.has_value() && *primitive.material >= -3 && *primitive.material <= -1) {
+				s32 index = -*primitive.material - 1;
+				
+				std::optional<GLTF::MaterialIndex>& material_index = special_material_indices[index];
+				if (!material_index.has_value()) {
+					material_index = gltf.materials.size();
+					GLTF::Material& material = gltf.materials.emplace_back();
+					material.name = special_material_names[index];
+					GLTF::MaterialPbrMetallicRoughness& pbr = material.pbr_metallic_roughness.emplace();
+					pbr.base_color_factor = special_material_colours[index];
+				}
+				
+				primitive.material = material_index;
+			}
+		}
 	}
 }
 

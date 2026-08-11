@@ -165,14 +165,36 @@ void unpack_level_core(
 			}
 		}
 	}
-	
+
+	// TODO: Unpack to main moby_classes directory, and refactor this into a
+	// separate function?
 	if (config.game() == Game::RAC) {
+		auto moby_class_entries = index.read_multiple<MobyClassEntry>(header.moby_classes);
+		auto moby_class_textures = index.read_multiple<TextureEntry>(header.moby_textures);
+		
 		CollectionAsset& gadgets = dest.gadgets(SWITCH_FILES);
 		auto gadget_entries = index.read_multiple<RacGadgetHeader>(header.gadget_offset_rac1, header.gadget_count_rac1);
+		
 		for (RacGadgetHeader& entry : gadget_entries) {
 			ByteRange range{entry.offset_in_asset_wad, (s32) data.size() - entry.offset_in_asset_wad};
 			MobyClassAsset& moby = gadgets.foreign_child<MobyClassAsset>(entry.class_number);
 			moby.set_id(entry.class_number);
+
+			const MobyClassEntry* class_entry = nullptr;
+			for (const MobyClassEntry& test_class_entry : moby_class_entries) {
+				if (test_class_entry.o_class == entry.class_number) {
+					class_entry = &test_class_entry;
+				}
+			}
+			verify(class_entry, "No moby class entry for gadget %d.", entry.class_number);
+
+			bool stashed = moby_stash.contains(entry.class_number);
+			if (stashed) {
+				moby.set_stash_textures(true);
+			}
+			
+			unpack_level_materials(moby.materials(), class_entry->textures, moby_class_textures, texture_data, gs_ram, config.game(), stashed ? moby_stash_addr : -1);
+			
 			unpack_compressed_asset(moby, data, range, config, FMT_MOBY_CLASS_PHAT);
 		}
 	}
@@ -251,6 +273,7 @@ void pack_level_core(
 	std::vector<GsRamEntry> gs_table;
 	std::vector<u8> part_defs;
 	if (!g_asset_packer_dry_run) {
+		// TODO: Pack R&C1 gadget textures.
 		shared = read_level_textures(first_chunk_asset.get_tfrags().get_materials(), mobies, ties, shrubs);
 		
 		for (LevelTexture& record : shared.textures) {

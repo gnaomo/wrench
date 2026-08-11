@@ -37,6 +37,7 @@ void unpack_moby_classes(
 	BuildConfig config,
 	s32 moby_stash_addr,
 	const std::set<s32>& moby_stash);
+void unpack_rac1_armor_classes();
 void pack_moby_classes(
 	OutputStream& index,
 	OutputStream& core,

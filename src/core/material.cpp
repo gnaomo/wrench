@@ -36,8 +36,8 @@ EffectiveMaterialsOutput effective_materials(const std::vector<Material>& materi
 						equal &= materials[i].wrap_mode_s == materials[j].wrap_mode_s;
 						equal &= materials[i].wrap_mode_t == materials[j].wrap_mode_t;
 					}
-					if (attributes & MATERIAL_ATTRIB_METAL_MODE) {
-						equal &= materials[i].metal_mode == materials[j].metal_mode;
+					if (attributes & MATERIAL_ATTRIB_EFFECT_MODE) {
+						equal &= materials[i].effect_mode == materials[j].effect_mode;
 					}
 					if (equal) {
 						effective.materials.emplace_back((s32) j);

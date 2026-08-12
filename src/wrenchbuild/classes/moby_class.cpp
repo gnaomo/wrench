@@ -40,7 +40,8 @@ static void unpack_moby_mesh(
 	const std::string name);
 static void pack_mesh_only_class(OutputStream& dest, const MobyClassAsset& src, BuildConfig config);
 static void unpack_materials(CollectionAsset& materials, GLTF::ModelFile& gltf);
-static void handle_special_materials(GLTF::ModelFile& gltf);
+static void handle_special_materials(CollectionAsset& materials, GLTF::ModelFile& gltf);
+static void handle_invalid_materials(CollectionAsset& materials, GLTF::ModelFile& gltf);
 static bool test_moby_class_core(
 	std::vector<u8>& src, AssetType type, BuildConfig config, const char* hint, AssetTestMode mode);
 
@@ -133,12 +134,7 @@ static void unpack_phat_class(MobyClassAsset& dest, InputStream& src, BuildConfi
 		unpack_moby_mesh(gltf, *scene, data.bangles[i].low_lod, data.scale, animated, stringf("bangle_%zu_low_lod", i));
 	}
 	
-	if (dest.has_materials()) {
-		unpack_materials(dest.get_materials(), gltf);
-	}
-
-	handle_special_materials(gltf);
-	GLTF::create_placeholder_material_for_invalid_material_indices(gltf);
+	unpack_materials(dest.materials(), gltf);
 	
 	std::vector<u8> glb = GLTF::write_glb(gltf);
 	auto [stream, ref] = dest.file().open_binary_file_for_writing("mesh.glb");
@@ -162,12 +158,7 @@ static void unpack_mesh_only_class(
 	unpack_moby_mesh(gltf, *scene, meshes.high_lod, scale, animated, "moby");
 	unpack_moby_mesh(gltf, *scene, meshes.low_lod, scale, animated, "moby_low_lod");
 	
-	if (!g_asset_unpacker.dump_binaries && dest.has_materials()) {
-		unpack_materials(dest.get_materials(), gltf);
-	}
-
-	handle_special_materials(gltf);
-	GLTF::create_placeholder_material_for_invalid_material_indices(gltf);
+	unpack_materials(dest.materials(), gltf);
 	
 	std::vector<u8> glb = GLTF::write_glb(gltf);
 	auto [stream, ref] = dest.file().open_binary_file_for_writing("mesh.glb");
@@ -246,9 +237,12 @@ static void unpack_materials(CollectionAsset& materials, GLTF::ModelFile& gltf)
 		
 		material_asset.set_name(*material.name);
 	}
+
+	handle_special_materials(materials, gltf);
+	handle_invalid_materials(materials, gltf);
 }
 
-static void handle_special_materials(GLTF::ModelFile& gltf)
+static void handle_special_materials(CollectionAsset& materials, GLTF::ModelFile& gltf)
 {
 	std::optional<GLTF::MaterialIndex> special_material_indices[3];
 	static const char* special_material_names[3] = { "none", "chrome", "glass" };
@@ -262,6 +256,9 @@ static void handle_special_materials(GLTF::ModelFile& gltf)
 				
 				std::optional<GLTF::MaterialIndex>& material_index = special_material_indices[index];
 				if (!material_index.has_value()) {
+					MaterialAsset& material_asset = materials.child<MaterialAsset>(special_material_names[index]);
+					material_asset.set_name(special_material_names[index]);
+					
 					material_index = gltf.materials.size();
 					GLTF::Material& material = gltf.materials.emplace_back();
 					material.name = special_material_names[index];
@@ -270,6 +267,30 @@ static void handle_special_materials(GLTF::ModelFile& gltf)
 				}
 				
 				primitive.material = material_index;
+			}
+		}
+	}
+}
+
+static void handle_invalid_materials(CollectionAsset& materials, GLTF::ModelFile& gltf)
+{
+	static const char* error_material_name = "error";
+	
+	Opt<GLTF::MaterialIndex> placeholder_material_index;
+	for (GLTF::Mesh& mesh : gltf.meshes) {
+		for (GLTF::MeshPrimitive& primitive : mesh.primitives) {
+			if (primitive.material.has_value() && (*primitive.material < 0 || *primitive.material >= gltf.materials.size())) {
+				if (!placeholder_material_index.has_value()) {
+					MaterialAsset& material_asset = materials.child<MaterialAsset>(error_material_name);
+					material_asset.set_name(error_material_name);
+					
+					placeholder_material_index = (GLTF::MaterialIndex) gltf.materials.size();
+					GLTF::Material& placeholder_material = gltf.materials.emplace_back();
+					placeholder_material.name = error_material_name;
+					GLTF::MaterialPbrMetallicRoughness& pbr = placeholder_material.pbr_metallic_roughness.emplace();
+					pbr.base_color_factor = glm::vec4(1.f, 0.f, 1.f, 1.f);
+				}
+				primitive.material = placeholder_material_index;
 			}
 		}
 	}

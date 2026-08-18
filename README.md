@@ -1,3 +1,21 @@
+> ## ⚠️ Fork Notice: LLM-Generated Changes (branch: gltf-migration)
+>
+> **This branch migrates mesh unpacking/packing (tfrags, ties, collision) from COLLADA to glTF, and adds supporting infrastructure (crash handler, generalized glTF mesh helpers, a per-ID collision visibility filter in the editor).**
+>
+> **Added / changed in this branch (relative to upstream master):**
+> - `core/gltf.{cpp,h}` — generalized collision mesh <-> `GLTF::Mesh` converters, used by the migrated packers/unpackers below.
+> - Collision, tfrag, and tie mesh packing/unpacking migrated from COLLADA to glTF.
+> - `core/collada.{cpp,h}` deleted; `ColladaScene`/`ColladaMaterial` renamed to `RecoveredScene`/`RecoveredMaterial` (glTF-based, name kept generic since the format backing it changed).
+> - `src/editor/gui/collision_legend.cpp` — a per-collision-ID visibility filter + legend in the editor, and refined/confirmed collision ID descriptions.
+> - `src/core/util/crash_handler.{cpp,h}` — a best-effort crash handler with symbolised backtraces.
+> - `src/assetmgr/*` — use `generic_string()` for cross-platform source-file matching.
+> - `src/core/buffer.cpp` — fix a stack buffer overflow in `OutBuffer::writesf`/`writelf`.
+> - `wrench-roadmap.md`, `TODO.md`, `CHANGELOG.md` — WIP tracking notes for this migration.
+>
+> **⚠️ LLM disclosure:** All of the changes on this branch were written entirely by an LLM (AI coding assistant) and have **not been reviewed, audited, or verified by the repository owner**. Treat this code as untrusted / unreviewed. It is kept here purely as a personal backup of work-in-progress and is **not intended for upstream contribution or production use** — this fork does not send PRs back to [chaoticgd/wrench](https://github.com/chaoticgd/wrench).
+>
+> Everything below this notice is the unmodified upstream Wrench README.
+
 # Wrench Editor
 
 A set of modding tools for the Ratchet & Clank PS2 games. Compatible with R&C1, R&C2, R&C3 and Deadlocked. Work in progress.

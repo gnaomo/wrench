@@ -88,3 +88,10 @@ endif()
 if(NOT PORTABLE_BUILD)
     message(WARNING "Wrench is built with machine specific optimizations. To build a portable version, reconfigure with -DPORTABLE_BUILD=ON.")
 endif()
+
+# Export symbols to the dynamic symbol table so the crash handler in
+# src/core/util/crash_handler.cpp can produce readable, symbolised
+# backtraces via backtrace_symbols() instead of bare addresses.
+if(NOT WIN32 AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
+endif()

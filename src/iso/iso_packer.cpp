@@ -142,41 +142,116 @@ void pack_iso(
 		toc_record.modified_time = fs::file_time_type::clock::now();
 	}
 	
-	// Write out blank sectors that are to be filled in by the table of contents later.
-	iso.pad(SECTOR_SIZE, 0);
-	if (config.game() != Game::RAC) {
+	// Write out blank sectors that are to be filled in by the table of contents
+	// later. On the retail RAC disc the named files (boot ELF, IOPRP243.IMG)
+	// sit immediately after SYSTEM.CNF (LBA 290+), well *before* the table of
+	// contents at its fixed LBA 1500 -- the reverse of the GC/UYA/DL layout,
+	// where the ToC precedes the other files. So for RAC, write the files
+	// first and reserve/fill the ToC region afterward instead.
+	s64 files_begin;
+	IsoFileRecord elf_record;
+	if (config.game() == Game::RAC) {
+		files_begin = iso.tell();
+		elf_record = pack_boot_elf(iso, src.get_boot_elf(), config, pack);
+		pack_files(iso, files, config, pack);
+		
+		iso.pad(SECTOR_SIZE, 0);
+		verify_fatal(iso.tell() <= table_of_contents_lba * SECTOR_SIZE);
+		// Pad only up to the ToC LBA itself here -- NOT up to
+		// + toc_size.bytes(). On RAC, the globals blob (packed below by
+		// pack_globals) is not a separate file living after the ToC header;
+		// the blob's own embedded RacWadInfo-shaped header prefix (relative
+		// offsets) occupies the SAME 6 sectors as the ToC header itself
+		// (confirmed against retail: the real disc's globals blob starts at
+		// exactly RAC_TABLE_OF_CONTENTS_LBA, not 6 sectors after it -- e.g.
+		// debug_font's real absolute location, 1506, is blob_start(1500) +
+		// the blob's own embedded-header size (6 sectors), not blob_start(1506)
+		// + 0). write_table_of_contents_rac() below overwrites that same
+		// 6-sector region afterward with the fully-rebased absolute-sector
+		// version, which is what actually needs to end up on disc; reserving
+		// a second, separate 6-sector gap here just pushed every subsequent
+		// global field 6 sectors too late.
+		while (iso.tell() < table_of_contents_lba * SECTOR_SIZE) {
+			iso.write_n(null_sector, SECTOR_SIZE);
+		}
+	} else {
+		iso.pad(SECTOR_SIZE, 0);
 		verify_fatal(iso.tell() == table_of_contents_lba * SECTOR_SIZE);
+		while (iso.tell() < table_of_contents_lba * SECTOR_SIZE + toc_size.bytes()) {
+			iso.write_n(null_sector, SECTOR_SIZE);
+		}
+		
+		files_begin = iso.tell();
+		
+		elf_record = pack_boot_elf(iso, src.get_boot_elf(), config, pack);
+		pack_files(iso, files, config, pack);
 	}
-	while (iso.tell() < table_of_contents_lba * SECTOR_SIZE + toc_size.bytes()) {
-		iso.write_n(null_sector, SECTOR_SIZE);
-	}
-	
-	s64 files_begin = iso.tell();
-	
-	IsoFileRecord elf_record = pack_boot_elf(iso, src.get_boot_elf(), config, pack);
-	pack_files(iso, files, config, pack);
 	
 	root_dir.files.emplace(root_dir.files.begin(), std::move(elf_record));
-	root_dir.files.emplace(root_dir.files.begin(), std::move(toc_record));
+	// The retail RAC disc does not expose the table of contents (RC1.HDR) or
+	// the globals/levels/audio/scenes trees as named ISO9660 entries at all --
+	// they're addressed purely via the RacWadInfo table read from a hardcoded
+	// LBA. Wrench still writes the underlying bytes at the correct sectors
+	// (see the calls below), it just skips registering directory/file records
+	// for them, to match the original disc's (near-empty) filesystem tree.
+	if (config.game() != Game::RAC) {
+		root_dir.files.emplace(root_dir.files.begin(), std::move(toc_record));
+	}
 	root_dir.files.emplace(root_dir.files.begin(), std::move(system_cnf_record));
 	
-	root_dir.subdirs.emplace_back(pack_globals(iso, toc.globals, config, pack, no_mpegs));
+	IsoDirectory globals_dir = pack_globals(iso, toc.globals, config, pack, no_mpegs);
 	auto [levels_dir, audio_dir, scenes_dir] =
 		pack_levels(iso, toc.levels, config, single_level, pack);
-	root_dir.subdirs.emplace_back(std::move(levels_dir));
-	root_dir.subdirs.emplace_back(std::move(audio_dir));
-	root_dir.subdirs.emplace_back(std::move(scenes_dir));
+	if (config.game() != Game::RAC) {
+		root_dir.subdirs.emplace_back(std::move(globals_dir));
+		root_dir.subdirs.emplace_back(std::move(levels_dir));
+		root_dir.subdirs.emplace_back(std::move(audio_dir));
+		root_dir.subdirs.emplace_back(std::move(scenes_dir));
+	}
 	
 	iso.pad(SECTOR_SIZE, 0);
 	s64 volume_size = iso.tell() / SECTOR_SIZE;
 	
+	// Original mastered discs are padded out to a fixed volume size
+	// regardless of actual content size. Pad to match where verified.
+	if (config.game() == Game::RAC && volume_size < RAC_PADDED_VOLUME_SIZE_SECTORS) {
+		while (iso.tell() < (s64) RAC_PADDED_VOLUME_SIZE_SECTORS * SECTOR_SIZE) {
+			iso.write_n(null_sector, SECTOR_SIZE);
+		}
+		volume_size = RAC_PADDED_VOLUME_SIZE_SECTORS;
+	}
+	
+	IsoPvdStrings pvd_strings;
+	const IsoPvdStrings* pvd_strings_ptr = nullptr;
+	if (src.has_primary_volume_descriptor()) {
+		const PrimaryVolumeDescriptorAsset& pvd_asset = src.get_primary_volume_descriptor();
+		pvd_strings.system_identifier = pvd_asset.system_identifier("");
+		pvd_strings.volume_identifier = pvd_asset.volume_identifier("");
+		pvd_strings.volume_set_identifier = pvd_asset.volume_set_identifier("");
+		pvd_strings.publisher_identifier = pvd_asset.publisher_identifier("");
+		pvd_strings.data_preparer_identifier = pvd_asset.data_preparer_identifier("");
+		pvd_strings.application_identifier = pvd_asset.application_identifier("");
+		pvd_strings.copyright_file_identifier = pvd_asset.copyright_file_identifier("");
+		pvd_strings.abstract_file_identifier = pvd_asset.abstract_file_identifier("");
+		pvd_strings.bibliographic_file_identifier = pvd_asset.bibliographic_file_identifier("");
+		pvd_strings_ptr = &pvd_strings;
+	}
+	
 	iso.seek(0);
-	write_iso_filesystem(iso, &root_dir);
+	write_iso_filesystem(iso, &root_dir, pvd_strings_ptr);
 	verify_fatal(iso.tell() <= table_of_contents_lba * SECTOR_SIZE);
 	iso.write<IsoLsbMsb32>(0x8050, IsoLsbMsb32::from_scalar(volume_size));
 	
 	s64 toc_end = write_table_of_contents(iso, toc, config.game());
-	verify_fatal(toc_end <= files_begin);
+	// On RAC the ordering is reversed (see above): files precede the ToC, so
+	// this must check the ToC doesn't run past its reserved region rather
+	// than checking it ends before files_begin, which for RAC is now the
+	// *start* of the files region (long before the ToC) rather than the end.
+	if (config.game() == Game::RAC) {
+		verify_fatal(toc_end <= (s64) (table_of_contents_lba * SECTOR_SIZE + toc_size.bytes()));
+	} else {
+		verify_fatal(toc_end <= files_begin);
+	}
 }
 
 static void pack_ps2_logo(
@@ -208,6 +283,17 @@ static void pack_ps2_logo(
 	}
 	
 	iso.write_v(texture->data);
+	
+	// The logo image doesn't necessarily fill the whole 12-sector area
+	// reserved for it. On retail discs, the unused remainder is filled
+	// with scrambled zero bytes (i.e. more background), not left blank.
+	// Reproduce that here so the packed ISO matches byte-for-byte.
+	s64 remaining = 12 * SECTOR_SIZE - (s64) texture->data.size();
+	if (remaining > 0) {
+		u8 pad_byte = ((0 >> 3) | (0 << 5)) ^ key;
+		std::vector<u8> padding(remaining, pad_byte);
+		iso.write_v(padding);
+	}
 }
 
 static std::vector<GlobalWadInfo> enumerate_globals(const BuildAsset& build, Game game, Region region)
@@ -599,6 +685,24 @@ static void pack_level_wad_outer(
 	std::string file_name = stringf("%s%02d.wad", name, index);
 	
 	iso.pad(SECTOR_SIZE, 0);
+	
+	// On the retail RAC disc, each level's Rac1AmalgamatedWadHeader sits
+	// immediately before that level's own core ("level", not audio/scene)
+	// data block -- confirmed directly against retail bytes (root cause #4).
+	// Reserve the 5 sectors for it here and record where, so
+	// write_table_of_contents_rac() can seek back and write the real header
+	// there once it's known (it depends on this level's audio/scene info too,
+	// which for RAC1 aren't packed until later in pack_levels()'s SoA order).
+	Sector32 header_lba = {0};
+	if (config.game() == Game::RAC && strcmp(name, "level") == 0) {
+		header_lba = Sector32::size_from_bytes(iso.tell());
+		Sector32 header_reserve_sectors = Sector32::size_from_bytes(sizeof(Rac1AmalgamatedWadHeader));
+		static const u8 null_sector[SECTOR_SIZE] = {0};
+		for (s32 i = 0; i < header_reserve_sectors.sectors; i++) {
+			iso.write_n(null_sector, SECTOR_SIZE);
+		}
+	}
+	
 	Sector32 sector = Sector32::size_from_bytes(iso.tell());
 	
 	verify_fatal(wad.asset);
@@ -608,7 +712,7 @@ static void pack_level_wad_outer(
 	s64 end_of_file = iso.tell();
 	s64 file_size = end_of_file - sector.bytes();
 	
-	wad.header_lba = {0}; // Don't care.
+	wad.header_lba = header_lba;
 	wad.file_size = Sector32::size_from_bytes(file_size);
 	wad.file_lba = sector;
 	

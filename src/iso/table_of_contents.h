@@ -191,6 +191,14 @@ static const uint32_t GC_UYA_DL_SYSTEM_CNF_LBA = 1000;
 static const uint32_t RAC_TABLE_OF_CONTENTS_LBA = 1500;
 static const uint32_t GC_UYA_DL_TABLE_OF_CONTENTS_LBA = 1001;
 
+// Original mastered PS2 discs are padded out to a fixed volume size at
+// mastering time regardless of how much data the game actually contains.
+// Verified against the original SCES_509.16 (EU 1.00) disc, which reports
+// VolumeSpaceSize == 2,057,616 sectors in its PVD despite only using
+// 2,038,725 sectors of actual content. Only verified for RAC/EU so far;
+// applied conservatively (RAC only) until confirmed for other games/regions.
+static const uint32_t RAC_PADDED_VOLUME_SIZE_SECTORS = 2057616;
+
 static const std::size_t TOC_MAX_SIZE       = 0x200000;
 static const std::size_t TOC_MAX_INDEX_SIZE = 0x10000;
 static const std::size_t TOC_MAX_LEVELS     = 100;

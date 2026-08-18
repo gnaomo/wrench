@@ -899,8 +899,10 @@ void LooseAssetBank::enumerate_source_files(std::map<fs::path, const AssetBank*>
 	std::string game_source_path = get_game_source_path(game);
 	
 	for (auto& entry : fs::recursive_directory_iterator(m_directory)) {
-		std::string str = entry.path().lexically_relative(m_directory).string();
-		std::replace(str.begin(), str.end(), '\\', '/');
+		// generic_string() always uses forward slashes regardless of platform,
+		// so it can be compared against common_source_path/game_source_path
+		// without a manual separator normalisation pass.
+		std::string str = entry.path().lexically_relative(m_directory).generic_string();
 		if (entry.is_regular_file() && (str.starts_with(common_source_path) || str.starts_with(game_source_path))) {
 			dest[fs::path(str)] = this;
 		}
@@ -980,7 +982,9 @@ void MemoryAssetBank::enumerate_source_files(std::map<fs::path, const AssetBank*
 	
 	std::vector<fs::path> asset_files;
 	for (auto& [path, contents] : m_files) {
-		if (path.string().starts_with(common_source_path) || path.string().starts_with(game_source_path)) {
+		// generic_string() so this matches on Windows too, not just Linux.
+		std::string str = path.generic_string();
+		if (str.starts_with(common_source_path) || str.starts_with(game_source_path)) {
 			dest[path] = this;
 		}
 	}

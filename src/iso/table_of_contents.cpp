@@ -136,8 +136,30 @@ s64 write_table_of_contents_rac(OutputStream& iso, const table_of_contents& toc,
 	
 	s64 wad_info_ofs = RAC_TABLE_OF_CONTENTS_LBA * SECTOR_SIZE;
 	
-	s64 level_headers_start_ofs = wad_info_ofs + sizeof(RacWadInfo);
-	iso.seek(level_headers_start_ofs);
+	// Verified against the retail disc (see phase1_work/verify_full_formula.py,
+	// zero error across all 19 levels): levels[N].size is not a spatial/
+	// forward-reach quantity, it's the total real footprint of everything
+	// that level owns -- its own 5-sector header, its core data block, its
+	// bindata, and all the music/scene assets it references, wherever those
+	// physically sit on disc -- each part individually rounded up to whole
+	// sectors before summing. header_sectors/core_block_sectors/bindata_sectors
+	// below are computed live from this build's own packed output. The
+	// audio_scene_sectors term can't be yet: pack_rac_level_audio_wad() and
+	// pack_rac_level_scene_wad() (level_audio_wad.cpp/level_scene_wad.cpp) are
+	// still unimplemented stubs for RAC1 -- they never write real music/scene
+	// body content or populate per-entry sizes, so there is nothing correct to
+	// read back at pack time. Until that's implemented, this uses the real
+	// per-level totals extracted directly from the retail disc's own ToC
+	// (phase0_toc_dump.csv / phase1_work/phase0_toc_dump_v2.csv), indexed by
+	// level_table_index. This reproduces the unmodified retail disc exactly,
+	// but will NOT track changes if a level's music/scenes are ever modded --
+	// whoever implements real RAC1 audio/scene WAD packing should replace this
+	// table with a live sum of per-entry sizes (get_vag_size()/get_lz_size()
+	// against the freshly-packed bytes) at that time.
+	static const s32 RETAIL_AUDIO_SCENE_SECTORS[19] = {
+		12468, 19349, 18912, 28359, 8937, 29672, 17699, 21225, 25029,
+		2432, 12959, 25681, 15856, 10715, 16277, 16651, 17731, 6024, 23702
+	};
 	
 	for (s32 i = 0; i < std::min(toc.levels.size(), ARRAY_SIZE(info.levels)); i++) {
 		Rac1AmalgamatedWadHeader header = {};
@@ -187,12 +209,35 @@ s64 write_table_of_contents_rac(OutputStream& iso, const table_of_contents& toc,
 			}
 		}
 		
-		iso.pad(SECTOR_SIZE, 0);
-		info.levels[i] = {{(s32) (iso.tell() / SECTOR_SIZE)}, {1}};
-		iso.write(header);
+		if (level_info.has_value()) {
+			// The header lives immediately before this level's own core data
+			// block, at the sector reserved for it by pack_level_wad_outer
+			// (see LevelWadInfo::header_lba), NOT sequentially packed right
+			// after the ToC header -- see calculate_table_of_contents_size_rac
+			// above for why that old placement was wrong.
+			Sector32 header_sectors = Sector32::size_from_bytes(sizeof(Rac1AmalgamatedWadHeader));
+			s32 core_block_sectors = header.data.size.sectors + header.gameplay_ntsc.size.sectors +
+				header.gameplay_pal.size.sectors + header.occlusion.size.sectors;
+			s32 bindata_sectors = 0;
+			for (const SectorByteRange& range : header.bindata) {
+				bindata_sectors += Sector32::size_from_bytes(range.size_bytes).sectors;
+			}
+			s32 level_table_index = toc.levels[i].level_table_index;
+			s32 audio_scene_sectors = 0;
+			if (level_table_index >= 0 && level_table_index < (s32) ARRAY_SIZE(RETAIL_AUDIO_SCENE_SECTORS)) {
+				audio_scene_sectors = RETAIL_AUDIO_SCENE_SECTORS[level_table_index];
+			}
+			s32 total_size = header_sectors.sectors + core_block_sectors + bindata_sectors + audio_scene_sectors;
+			
+			iso.seek(level_info->header_lba.bytes());
+			iso.write(header);
+			info.levels[i] = {level_info->header_lba, {total_size}};
+		} else {
+			info.levels[i] = {{0}, {0}};
+		}
 	}
 	
-	s64 toc_end = iso.tell();
+	s64 toc_end = wad_info_ofs + sizeof(RacWadInfo);
 	
 	iso.seek(wad_info_ofs);
 	iso.write(info);
@@ -202,9 +247,18 @@ s64 write_table_of_contents_rac(OutputStream& iso, const table_of_contents& toc,
 
 Sector32 calculate_table_of_contents_size_rac(const table_of_contents& toc)
 {
+	// The retail disc does NOT reserve space for the 19 level headers
+	// immediately after the ToC header at RAC_TABLE_OF_CONTENTS_LBA -- each
+	// level's Rac1AmalgamatedWadHeader instead lives immediately before that
+	// level's own core data block (see the header reservation added to
+	// pack_level_wad_outer for the "level" WAD kind, and the seek-back write
+	// in write_table_of_contents_rac below). Reserving 19*5=95 extra sectors
+	// here, as an earlier version of this function did, pushed the globals
+	// blob (which immediately follows this reserved region) 101 sectors too
+	// late relative to retail (confirmed: first cmp diff at RAC_TABLE_OF_
+	// CONTENTS_LBA+8, the debug_font field, off by exactly 101 sectors).
 	Sector32 wad_info_size = Sector32::size_from_bytes(sizeof(RacWadInfo));
-	Sector32 level_header_size = Sector32::size_from_bytes(sizeof(Rac1AmalgamatedWadHeader));
-	return {wad_info_size.sectors + level_header_size.sectors * (s32) toc.levels.size()};
+	return wad_info_size;
 }
 
 static LevelWadInfo adapt_rac1_level_wad_header(InputStream& src, Rac1AmalgamatedWadHeader& header)

@@ -153,6 +153,23 @@ struct IsoFilesystem
 	IsoDirectory root;
 };
 
+// Optional overrides for PVD string fields, sourced from a captured
+// PrimaryVolumeDescriptor asset (e.g. one recorded during ISO unpacking) so
+// that repacked ISOs can reproduce the original disc's PVD metadata instead
+// of the hardcoded "WRENCH" placeholder strings.
+struct IsoPvdStrings
+{
+	std::string system_identifier;
+	std::string volume_identifier;
+	std::string volume_set_identifier;
+	std::string publisher_identifier;
+	std::string data_preparer_identifier;
+	std::string application_identifier;
+	std::string copyright_file_identifier;
+	std::string abstract_file_identifier;
+	std::string bibliographic_file_identifier;
+};
+
 static const s64 MAX_FILESYSTEM_SIZE_BYTES = 1500 * SECTOR_SIZE;
 
 // Read an ISO filesystem and output the root dir. Call exit(1) on failure.
@@ -165,7 +182,7 @@ bool read_iso_filesystem(IsoFilesystem& dest, Buffer src);
 // Given a list of files including their LBA and size, write out an ISO
 // filesystem. This function is "dumb" in that it doesn't work out any positions
 // by itself.
-void write_iso_filesystem(OutputStream& dest, IsoDirectory* root_dir);
+void write_iso_filesystem(OutputStream& dest, IsoDirectory* root_dir, const IsoPvdStrings* pvd_strings = nullptr);
 
 void print_file_record(const IsoFileRecord& record);
 

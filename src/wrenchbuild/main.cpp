@@ -87,7 +87,8 @@ static void pack(
 	const fs::path& output_path,
 	BuildConfig config,
 	const std::string& hint,
-	const char* underlay_path);
+	const char* underlay_path,
+	const char* overlay_path);
 static const IsoFileRecord* find_boot_elf(const IsoDirectory& root, InputStream& iso);
 static Release identify_release_fallback(const IsoFileRecord& elf, InputStream& iso);
 static void decompress(const fs::path& input_path, const fs::path& output_path, s64 offset);
@@ -165,7 +166,7 @@ static int wrenchbuild(int argc, char** argv)
 	
 	if (mode == "pack") {
 		ParsedArgs args = parse_args(argc, argv, ARG_INPUT_PATHS | ARG_ASSET | ARG_OUTPUT_PATH | ARG_GAME | ARG_REGION | ARG_HINT);
-		pack(args.input_paths, args.asset, args.output_path, BuildConfig(args.game, args.region), args.hint, wads.underlay.c_str());
+		pack(args.input_paths, args.asset, args.output_path, BuildConfig(args.game, args.region), args.hint, wads.underlay.c_str(), wads.overlay.c_str());
 		report_memory_statistics();
 		return 0;
 	}
@@ -484,7 +485,8 @@ static void pack(
 	const fs::path& output_path,
 	BuildConfig config,
 	const std::string& hint,
-	const char* underlay_path)
+	const char* underlay_path,
+	const char* overlay_path)
 {
 	printf("[  0%%] Mounting asset banks\n");
 	
@@ -500,6 +502,12 @@ static void pack(
 			asset.flags |= ASSET_IS_WEAKLY_DELETED;
 		}
 	});
+	
+	// Load the overlay, which contains shared source (e.g. src/game_common)
+	// needed to resolve pvar/moby update header types during packing. Unlike
+	// unpack, pack must parse these back from text, so the common typedefs
+	// (e.g. game_common/links.h's mobylink) must be available here.
+	forest.mount<LooseAssetBank>(overlay_path, false);
 	
 	for (const fs::path& input_path : input_paths) {
 		if (fs::is_directory(input_path)) {

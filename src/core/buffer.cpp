@@ -184,37 +184,53 @@ void OutBuffer::pad(s64 align, u8 padding)
 
 void OutBuffer::writesf(s32 indent_level, const char* format, va_list args)
 {
-	static char temp[16 * 1024];
+	verify_fatal(indent_level >= 0);
 	
-	for (s32 i = 0; i < indent_level; i++) {
-		temp[i] = '\t';
-	}
-	
-	s32 count = vsnprintf(temp + indent_level, 16 * 1024 - indent_level, format, args);
-	verify_fatal(count >= 0);
-	count += indent_level;
+	// vsnprintf consumes the va_list, so measure the required size with a
+	// copy of it first, then do the real write with the original. This
+	// avoids the previous fixed 16KB stack buffer, which could silently be
+	// overrun: vsnprintf() returns the length that *would* have been written
+	// even if the buffer passed to it was too small, and that miscounted
+	// length was then used to size a memcpy() out of the same undersized
+	// buffer.
+	va_list args_copy;
+	va_copy(args_copy, args);
+	s32 body_size = vsnprintf(nullptr, 0, format, args_copy);
+	va_end(args_copy);
+	verify_fatal(body_size >= 0);
 	
 	size_t write_ofs = vec.size();
-	vec.resize(vec.size() + count);
-	memcpy(vec.data() + write_ofs, temp, count);
+	// +1 so vsnprintf has room to write its null terminator; trimmed off below.
+	vec.resize(write_ofs + indent_level + body_size + 1);
+	
+	for (s32 i = 0; i < indent_level; i++) {
+		vec[write_ofs + i] = '\t';
+	}
+	vsnprintf((char*) vec.data() + write_ofs + indent_level, body_size + 1, format, args);
+	vec.resize(vec.size() - 1);
 }
 
 void OutBuffer::writelf(s32 indent_level, const char* format, va_list args)
 {
-	static char temp[16 * 1024];
+	verify_fatal(indent_level >= 0);
 	
-	for (s32 i = 0; i < indent_level; i++) {
-		temp[i] = '\t';
-	}
-	
-	s32 count = vsnprintf(temp + indent_level, 16 * 1024 - indent_level, format, args);
-	verify_fatal(count >= 0);
-	count += indent_level;
+	va_list args_copy;
+	va_copy(args_copy, args);
+	s32 body_size = vsnprintf(nullptr, 0, format, args_copy);
+	va_end(args_copy);
+	verify_fatal(body_size >= 0);
 	
 	size_t write_ofs = vec.size();
-	vec.resize(write_ofs + count + 1);
-	memcpy(vec.data() + write_ofs, temp, count);
-	vec[write_ofs + count] = '\n';
+	// vsnprintf needs body_size+1 bytes to have room for its null terminator;
+	// that last byte becomes the newline once vsnprintf is done with it, so
+	// the final size is exactly indent_level + body_size + 1, no trim needed.
+	vec.resize(write_ofs + indent_level + body_size + 1);
+	
+	for (s32 i = 0; i < indent_level; i++) {
+		vec[write_ofs + i] = '\t';
+	}
+	vsnprintf((char*) vec.data() + write_ofs + indent_level, body_size + 1, format, args);
+	vec[write_ofs + indent_level + body_size] = '\n';
 }
 
 void OutBuffer::writesf(s32 indent_level, const char* format, ...)

@@ -55,9 +55,9 @@ enum class WrapMode
 	REPEAT, CLAMP
 };
 
-enum class MetalEffectMode
+enum class MaterialEffectMode
 {
-	OFF, CHROME, GLASS
+	OFF, NONE, CHROME, GLASS
 };
 
 struct Material
@@ -66,14 +66,14 @@ struct Material
 	MaterialSurface surface;
 	WrapMode wrap_mode_s = WrapMode::REPEAT;
 	WrapMode wrap_mode_t = WrapMode::REPEAT;
-	MetalEffectMode metal_mode = MetalEffectMode::OFF;
+	MaterialEffectMode effect_mode = MaterialEffectMode::OFF;
 };
 
 enum MaterialAttribute
 {
 	MATERIAL_ATTRIB_SURFACE = 1 << 1,
 	MATERIAL_ATTRIB_WRAP_MODE = 1 << 2,
-	MATERIAL_ATTRIB_METAL_MODE = 1 << 3
+	MATERIAL_ATTRIB_EFFECT_MODE = 1 << 3
 };
 
 // An effective material is a set of materials that for some subset of

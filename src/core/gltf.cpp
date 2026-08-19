@@ -116,6 +116,7 @@ struct GLTFBuffer
 // GLTF, Scenes & Nodes
 static ModelFile read_gltf(const Json& src, Buffer bin_chunk);
 static Json write_gltf(const ModelFile& src, OutBuffer bin_chunk);
+static void validate_gltf(const ModelFile& gltf);
 static Asset read_asset(const Json& src);
 static Json write_asset(const Asset& src);
 static Scene read_scene(const Json& src);
@@ -256,6 +257,7 @@ ModelFile read_glb(Buffer src)
 	try {
 		auto json = Json::parse(src.lo + json_offset, src.lo + json_offset + json_size);
 		gltf = read_gltf(json, src.subbuf(bin_offset, bin_size));
+		validate_gltf(gltf);
 	} catch (Json::exception& e) {
 		verify_not_reached("%s", e.what());
 	}
@@ -265,6 +267,8 @@ ModelFile read_glb(Buffer src)
 
 std::vector<u8> write_glb(const ModelFile& gltf)
 {
+	validate_gltf(gltf);
+	
 	std::vector<u8> result;
 	OutBuffer dest(result);
 	
@@ -677,6 +681,71 @@ static Json write_gltf(const ModelFile& src, OutBuffer bin_chunk)
 	set_array_opt(dest, "extensionsRequired", src.extensions_required);
 	
 	return dest;
+}
+
+static void validate_gltf(const ModelFile& gltf)
+{
+	for (const Scene& scene : gltf.scenes) {
+		const char* name = scene.name.has_value() ? scene.name->c_str() : "unnamed";
+		
+		for (NodeIndex node : scene.nodes) {
+			verify(node >= 0 && node < gltf.nodes.size(),
+				"Out of bounds node index %d for scene '%s'.", node, name);
+		}
+	}
+	
+	for (const Node& node : gltf.nodes) {
+		const char* name = node.name.has_value() ? node.name->c_str() : "unnamed";
+		
+		for (NodeIndex child : node.children) {
+			verify(child >= 0 && child < gltf.nodes.size(),
+				"Out of bounds child index %d for node '%s'.", child, name);
+		}
+		
+		if (node.mesh.has_value()) {
+			verify(*node.mesh >= 0 && *node.mesh < gltf.meshes.size(),
+				"Out of bounds mesh index %d for node '%s'.", *node.mesh, name);
+		}
+	}
+	
+	for (const Animation& animation : gltf.animations) {
+		const char* name = animation.name.has_value() ? animation.name->c_str() : "unnamed";
+		
+		for (SamplerIndex sampler : animation.sampler_input) {
+			verify(sampler >= 0 && sampler < gltf.samplers.size(),
+				"Out of bounds sampler index %d for animation '%s'.", sampler, name);
+		}
+	}
+	
+	for (const Mesh& mesh : gltf.meshes) {
+		const char* name = mesh.name.has_value() ? mesh.name->c_str() : "unnamed";
+		
+		for (const MeshPrimitive& primitive : mesh.primitives) {
+			if (primitive.material.has_value()) {
+				verify(*primitive.material >= 0 && *primitive.material < gltf.materials.size(),
+					"Out of bounds material index %d for mesh '%s'.", *primitive.material, name);
+			}
+		}
+	}
+	
+	for (const Material& material : gltf.materials) {
+		const char* name = material.name.has_value() ? material.name->c_str() : "unnamed";
+
+		if (material.pbr_metallic_roughness.has_value() && material.pbr_metallic_roughness->base_color_texture.has_value()) {
+			const TextureInfo& info = *material.pbr_metallic_roughness->base_color_texture;
+			verify(info.index >= 0 && info.index < gltf.textures.size(),
+				"Out of bounds texture index %d for material '%s'.", info.index, name);
+		}
+	}
+	
+	for (const Texture& texture : gltf.textures) {
+		const char* name = texture.name.has_value() ? texture.name->c_str() : "unnamed";
+		
+		if (texture.sampler.has_value()) {
+			verify(*texture.sampler >= 0 && *texture.sampler < gltf.samplers.size(),
+				"Out of bounds sampler index %d for texture '%s'.", *texture.sampler, name);
+		}
+	}
 }
 
 static Asset read_asset(const Json& src)

@@ -87,10 +87,6 @@ static void unpack_collision_asset(CollisionAsset& dest, InputStream& src, Build
 
 static void pack_collision_asset(OutputStream& dest, const CollisionAsset& src, BuildConfig config)
 {
-	if (g_asset_packer_dry_run) {
-		return;
-	}
-	
 	pack_level_collision(dest, src, nullptr, nullptr, -1);
 }
 
@@ -101,6 +97,10 @@ void pack_level_collision(
 	const Gameplay* gameplay,
 	s32 chunk)
 {
+	if (g_asset_packer_dry_run) {
+		return;
+	}
+	
 	RecoveredScene scene;
 	
 	for (s32 i = 0; i < 256; i++) {

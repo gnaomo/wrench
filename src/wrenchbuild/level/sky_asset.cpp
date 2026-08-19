@@ -26,8 +26,6 @@
 #include <wrenchbuild/asset_packer.h>
 #include <wrenchbuild/tests.h>
 
-#define SEPERATE_SKY_CLUSTERS
-
 static void unpack_sky_asset(SkyAsset& dest, InputStream& src, BuildConfig config);
 static void pack_sky_asset(OutputStream& dest, const SkyAsset& src, BuildConfig config);
 static void unpack_sky_textures(

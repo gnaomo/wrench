@@ -25,6 +25,16 @@
 
 namespace GLTF {
 
+using SceneIndex = s32;
+using NodeIndex = s32;
+using AnimationIndex = s32;
+using MeshIndex = s32;
+using MaterialIndex = s32;
+using TextureIndex = s32;
+using ImageIndex = s32;
+using SamplerIndex = s32;
+using SkinIndex = s32;
+
 struct Asset
 {
 	Opt<std::string> copyright;
@@ -35,17 +45,17 @@ struct Asset
 
 struct Scene
 {
-	std::vector<s32> nodes;
+	std::vector<NodeIndex> nodes;
 	Opt<std::string> name;
 };
 
 struct Node
 {
 	// unimplemented: camera
-	std::vector<s32> children;
-	Opt<s32> skin;
+	std::vector<NodeIndex> children;
+	Opt<SkinIndex> skin;
 	Opt<glm::mat4> matrix;
-	Opt<s32> mesh;
+	Opt<MeshIndex> mesh;
 	Opt<glm::vec4> rotation;
 	Opt<glm::vec3> scale;
 	Opt<glm::vec3> translation;
@@ -70,12 +80,12 @@ struct Animation
 {
 	Opt<std::string> name;
 	std::vector<AnimationChannelGroup> channel_groups;
-	std::vector<f32> sampler_input;
+	std::vector<SamplerIndex> sampler_input;
 };
 
 struct TextureInfo
 {
-	s32 index;
+	TextureIndex index;
 	Opt<s32> tex_coord;
 };
 
@@ -133,7 +143,7 @@ struct MeshPrimitive
 {
 	u32 attributes_bitfield = 0;
 	std::vector<s32> indices;
-	Opt<s32> material;
+	Opt<MaterialIndex> material;
 	Opt<MeshPrimitiveMode> mode;
 	// unimplemented: targets
 };
@@ -148,7 +158,7 @@ struct Mesh
 
 struct Texture
 {
-	Opt<s32> sampler;
+	Opt<SamplerIndex> sampler;
 	Opt<s32> source;
 	Opt<std::string> name;
 };

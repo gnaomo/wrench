@@ -1,6 +1,6 @@
 # Asset Reference
 
-This file was generated from asset_schema.wtf and is for version 29 of the asset format.
+This file was generated from asset_schema.wtf and is for version 30 of the asset format.
 
 ## Index
 
@@ -1111,14 +1111,13 @@ No children.
 | - | - | - | - | - |
 | name | The name of the material being referenced. | String | Yes | RAC/GC/UYA/DL |
 | wrap_mode | The UV wrapping mode, stored as an array of two strings. Possible values are ["repeat" "repeat"] (the default), ["repeat" "clamp"], ["clamp" "repeat"] and ["clamp" "clamp"]. | Array | No | RAC/GC/UYA/DL |
-| glass | Only for mobies. Make the material shiny, like glass? | Boolean | *Not yet documented.* | *Not yet documented.*  |
-| chrome | Only for mobies. Make the material shiny, like chrome? | Boolean | *Not yet documented.* | *Not yet documented.*  |
+| effect_mode | List of effect modifiers, only relevant for mobies. Possible values are [], ["none"], ["chrome"] and ["glass"]. | Array | No | RAC/GC/UYA/DL |
 
 *Children*
 
 | Name | Description | Allowed Types | Required | Games |
 | - | - | - | - | - |
-| diffuse | The diffuse map (main texture). | Texture | Yes | RAC/GC/UYA/DL |
+| diffuse | The diffuse map (main texture). | Texture | No | RAC/GC/UYA/DL |
 
 
 ### Collision

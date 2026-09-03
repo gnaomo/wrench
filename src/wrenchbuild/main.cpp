@@ -726,14 +726,14 @@ static void print_usage(bool developer_subcommands)
 	puts(" unpack <input file> -o <output dir> [-g <game>] [-r <region>] [-s]");
 	puts("   Unpack an ISO or WAD file to produce an asset bank of source files.");
 	puts("   If the file to be unpacked is a WAD, the game (rac, gc, uya or dl) should be");
-	puts("   specified and the region (us, eu or japan) must be specified.");
+	puts("   specified and the region (us, eu or japan, korea) must be specified.");
 	puts("   Optionally, files unpacked from an ISO can be placed in a subdirectory with a");
 	puts("   name based on the identified release of said ISO by passing -s.");
 	puts("");
 	puts(" pack <input asset banks> -a <asset link> -o <output iso> [-h <hint>] [-g <game>] [-r <region>]");
 	puts("   Pack an asset (e.g. a build) to produce a built file (e.g. an ISO file).");
 	puts("   If <asset link> is not a build, the game (rac, gc, uya or dl) and the region");
-	puts("   (us, eu or japan) must be specified.");
+	puts("   (us, eu or japan, korea) must be specified.");
 	puts("   A hint string used to specify the format of the asset can be set by");
 	puts("   passing -h, which is required for certain types of assets such as builds.");
 	puts("   These strings are documented in the asset reference.");

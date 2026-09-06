@@ -377,12 +377,12 @@ AssetType Subtitle {
 	StringAttribute text_j {
 		desc: "The Japanese subtitle text."
 		required: false
-		games: [1 2 3 4]
+		games: [3 4]
 	}
 	StringAttribute text_k {
 		desc: "The Korean subtitle text."
 		required: false
-		games: [2 3 4]
+		games: [3 4]
 	}
 	StringAttribute encoding_e {
 		desc: "\"raw\" means the text is in the format accepted by the game, \"utf8\" means the text is in UTF-8 (which is not yet supported)."
@@ -393,8 +393,8 @@ AssetType Subtitle {
 	StringAttribute encoding_g { desc: "See encoding_e." required: false games: [1 2 3 4] }
 	StringAttribute encoding_s { desc: "See encoding_e." required: false games: [1 2 3 4] }
 	StringAttribute encoding_i { desc: "See encoding_e." required: false games: [1 2 3 4] }
-	StringAttribute encoding_j { desc: "See encoding_e." required: false games: [1 2 3 4] }
-	StringAttribute encoding_k { desc: "See encoding_e." required: false games: [2 3 4] }
+	StringAttribute encoding_j { desc: "See encoding_e." required: false games: [3 4] }
+	StringAttribute encoding_k { desc: "See encoding_e." required: false games: [3 4] }
 }
 
 AssetType ElfFile {

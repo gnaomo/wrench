@@ -44,7 +44,7 @@ static const Release RELEASES[] = {
 	{"tces_524.56", Game::UYA, Region::EU, "Ratchet & Clank 3"}, // eu beta trial code
 	{"scka_200.37", Game::UYA, Region::KOREA, "Ratchet & Clank: Gonggu Jeonsa Reloaded"}, // korea original
 	{"pcpx_980.17", Game::DL, Region::JAPAN, "Ratchet & Clank 4th: Giri Giri Ginga no Giga Battle"}, // japan demo
-	{"sced_536.60", Game::DL, Region::EU, "Ratchet: Gladiator"}, // jak x glaiator demo
+	{"sced_536.60", Game::DL, Region::EU, "Ratchet: Gladiator"}, // jak x gladiator demo
 	{"sces_532.85", Game::DL, Region::EU, "Ratchet: Gladiator"}, // eu original/platinum
 	{"scps_150.99", Game::DL, Region::JAPAN, "Ratchet & Clank 4th: Giri Giri Ginga no Giga Battle"}, // japan special gift package
 	{"scps_151.00", Game::DL, Region::JAPAN, "Ratchet & Clank 4th: Giri Giri Ginga no Giga Battle"}, // japan reprint

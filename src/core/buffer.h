@@ -158,7 +158,7 @@ struct OutBuffer
 	{
 		size_t write_ofs = vec.size();
 		vec.resize(vec.size() + things.size() * sizeof(typename T::value_type));
-		memcpy(&vec[write_ofs], things.data(), things.size() * sizeof(typename T::value_type));
+		memcpy(vec.data() + write_ofs, things.data(), things.size() * sizeof(typename T::value_type));
 		return write_ofs;
 	}
 	
@@ -167,7 +167,7 @@ struct OutBuffer
 	{
 		verify_fatal(offset >= 0);
 		verify_fatal(offset + things.size() * sizeof(typename T::value_type) <= vec.size());
-		memcpy(&vec[offset], things.data(), things.size() * sizeof(typename T::value_type));
+		memcpy(vec.data() + offset, things.data(), things.size() * sizeof(typename T::value_type));
 		return offset;
 	}
 	

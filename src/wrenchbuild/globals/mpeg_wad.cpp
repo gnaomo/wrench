@@ -116,8 +116,8 @@ static void unpack_gc_uya_dl_mpeg_wad(
 			} else {
 				unpack_asset(mpeg.video_pal(), src, header.mpegs[i].video, config, FMT_BINARY_PSS);
 			}
-			if (config.region() == Region::JAPAN) {
-				// The Japanese subtitles are in a different format, so just
+			if (config.region() == Region::JAPAN || config.region() == Region::KOREA) {
+				// The Japanese/Korean subtitles are in a different format, so just
 				// unpack them as binaries.
 				BinaryAsset& subtitles = mpeg.child<BinaryAsset>("subtitles");
 				unpack_asset(subtitles, src, header.mpegs[i].subtitles, config, FMT_NO_HINT);

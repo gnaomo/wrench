@@ -148,7 +148,7 @@ A build of the game.
 | Name | Description | Type | Required | Games |
 | - | - | - | - | - |
 | game | The game being built. Possible values: "rac", "gc", "uya", "dl". | String | Yes | RAC/GC/UYA/DL |
-| region | The region. Possible values: "us", "eu", "japan". | String | Yes | RAC/GC/UYA/DL |
+| region | The region. Possible values: "us", "eu", "japan", "korea". | String | Yes | RAC/GC/UYA/DL |
 | version | The version number, as specified in the SYSTEM.CNF file. | String | Yes | RAC/GC/UYA/DL |
 | ps2_logo_key | The key used to "encrypt" the PS2 logo. | Integer | No | RAC/GC/UYA/DL |
 

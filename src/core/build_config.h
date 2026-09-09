@@ -33,7 +33,7 @@ enum
 
 enum class Region : u8
 {
-	UNKNOWN = 0, US = 1, EU = 2, JAPAN = 3
+	UNKNOWN = 0, US = 1, EU = 2, JAPAN = 3, KOREA = 4
 };
 
 class BuildConfig

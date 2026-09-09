@@ -25,29 +25,32 @@ static const Release RELEASES[] = {
 	{"scus_971.99", Game::RAC, Region::US, "Ratchet & Clank"}, // us original/greatest hits
 	{"scus_972.09", Game::RAC, Region::US, "Ratchet & Clank"}, // us demo 1
 	{"scus_972.40", Game::RAC, Region::US, "Ratchet & Clank"}, // us demo 2
-	{"scps_150.56", Game::GC, Region::JAPAN, "Ratchet & Clank: Going Commando"}, // japan original
+	{"scps_150.56", Game::GC, Region::JAPAN, "Ratchet & Clank: Gagaga! Ginga no Commando ssu"}, // japan original
 	{"sces_516.07", Game::GC, Region::EU, "Ratchet & Clank 2"}, // eu original/platinum
 	{"scus_972.68", Game::GC, Region::US, "Ratchet & Clank: Going Commando"}, // us greatest hits
 	{"scus_972.68", Game::GC, Region::US, "Ratchet & Clank: Going Commando"}, // us original
 	{"scus_973.22", Game::GC, Region::US, "Ratchet & Clank: Going Commando"}, // us demo
 	{"scus_973.23", Game::GC, Region::US, "Ratchet & Clank: Going Commando"}, // us retail employees demo
 	{"scus_973.74", Game::GC, Region::US, "Ratchet & Clank: Going Commando"}, // us rac2 + jak demo
+	{"scka_200.11", Game::GC, Region::KOREA, "Ratchet & Clank: Gonggu Jeonsa Daebak Moli"}, // korea original
 	{"papx_905.20", Game::UYA, Region::JAPAN, "Ratchet & Clank: Up Your Arsenal"}, // japan promotional
 	{"sced_528.47", Game::UYA, Region::EU, "Ratchet & Clank 3"}, // eu demo
 	{"sced_528.48", Game::UYA, Region::EU, "Ratchet & Clank 3"}, // r&c3 + sly 2 demo
 	{"sces_524.56", Game::UYA, Region::EU, "Ratchet & Clank 3"}, // eu original/plantinum
-	{"scps_150.84", Game::UYA, Region::JAPAN, "Ratchet & Clank: Up Your Arsenal"}, // japan original
+	{"scps_150.84", Game::UYA, Region::JAPAN, "Ratchet & Clank 3: Totsugeki! Galactic Rangers"}, // japan original
 	{"scus_973.53", Game::UYA, Region::US, "Ratchet & Clank: Up Your Arsenal"}, // us original
 	{"scus_974.11", Game::UYA, Region::US, "Ratchet & Clank: Up Your Arsenal"}, // us demo
 	{"scus_974.13", Game::UYA, Region::US, "Ratchet & Clank: Up Your Arsenal"}, // us beta
 	{"tces_524.56", Game::UYA, Region::EU, "Ratchet & Clank 3"}, // eu beta trial code
-	{"pcpx_980.17", Game::DL, Region::JAPAN, "Ratchet & Clank 4"}, // japan demo
-	{"sced_536.60", Game::DL, Region::EU, "Ratchet: Gladiator"}, // jak x glaiator demo
+	{"scka_200.37", Game::UYA, Region::KOREA, "Ratchet & Clank: Gonggu Jeonsa Reloaded"}, // korea original
+	{"pcpx_980.17", Game::DL, Region::JAPAN, "Ratchet & Clank 4th: Giri Giri Ginga no Giga Battle"}, // japan demo
+	{"sced_536.60", Game::DL, Region::EU, "Ratchet: Gladiator"}, // jak x gladiator demo
 	{"sces_532.85", Game::DL, Region::EU, "Ratchet: Gladiator"}, // eu original/platinum
-	{"scps_150.99", Game::DL, Region::JAPAN, "Ratchet & Clank 4"}, // japan special gift package
-	{"scps_151.00", Game::DL, Region::JAPAN, "Ratchet & Clank 4"}, // japan reprint
+	{"scps_150.99", Game::DL, Region::JAPAN, "Ratchet & Clank 4th: Giri Giri Ginga no Giga Battle"}, // japan special gift package
+	{"scps_151.00", Game::DL, Region::JAPAN, "Ratchet & Clank 4th: Giri Giri Ginga no Giga Battle"}, // japan reprint
 	{"scus_974.65", Game::DL, Region::US, "Ratchet: Deadlocked"}, // us original
 	{"scus_974.85", Game::DL, Region::US, "Ratchet: Deadlocked"}, // us demo
+	{"scka_200.60", Game::DL, Region::KOREA, "Ratchet & Clank: Gonggu Jeonsa Wigi Ilbal"}, // korea original
 	{"scus_974.87", Game::DL, Region::US, "Ratchet: Deadlocked"} // us public beta
 };
 

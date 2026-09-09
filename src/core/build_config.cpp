@@ -87,6 +87,7 @@ Region region_from_string(const std::string& region)
 	if (region == "us") return Region::US;
 	if (region == "eu") return Region::EU;
 	if (region == "japan") return Region::JAPAN;
+	if (region == "korea") return Region::KOREA;
 	return Region::UNKNOWN;
 }
 
@@ -96,6 +97,7 @@ std::string region_to_string(Region region)
 		case Region::US: return "us";
 		case Region::EU: return "eu";
 		case Region::JAPAN: return "japan";
+		case Region::KOREA: return "korea";
 		default: return "unknown";
 	}
 }

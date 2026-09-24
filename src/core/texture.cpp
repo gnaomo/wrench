@@ -257,9 +257,9 @@ void Texture::to_8bit_paletted()
 				for (s32 x = 0; x < width; x++) {
 					u8 index = data[(y * width + x) / 2];
 					if (x % 2 == 0) {
-						index >>= 4;
-					} else {
 						index &= 0xf;
+					} else {
+						index >>= 4; //"if" and "else" contents were swapped before, between eachother. Fix suggested by Radu, to fix korean font unpacking, untested on other cases.
 					}
 					indices[y * width + x] = index;
 				}

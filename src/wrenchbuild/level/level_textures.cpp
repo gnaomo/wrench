@@ -320,7 +320,7 @@ void write_level_texture_indices(
 				record = &textures[record->out_edge];
 			}
 			verify_fatal(record->indices[table].has_value());
-			verify(*record->indices[table] < 0x104, "Too many textures.\n"); //increased textures limit from 0xFF to bigger value like 0x104 because of GC Korean
+			verify(*record->indices[table] < 0xFF, "Too many textures.\n");
 			dest[i] = *record->indices[table];
 		} else {
 			for (s32 j = i; j < 16; j++) {
@@ -498,34 +498,13 @@ std::tuple<ArrayRange, std::vector<u8>, s32> pack_particle_textures(
 }
 
 void unpack_fx_textures(
-	LevelWadAsset& core, const std::vector<FxTextureEntry>& entries, InputStream& fx_bank, Game game)
+	LevelWadAsset& core, const std::vector<FxTextureEntry>& entries, InputStream& fx_bank, Game game, Region region)
 {
 	CollectionAsset& fx_textures = core.fx_textures("fx_textures/fx_textures.asset");
-	
+
 	std::vector<Texture> textures;
 	for (size_t i = 0; i < entries.size(); i++) {
-		const FxTextureEntry& entry = entries[i];
-		std::vector<u32> palette;
-		std::vector<u8> pixels;
-		Texture texture;
-		 if (game == Game::GC && entry.palette == 0x800 && (entry.width < 0 || entry.height < 0)){  // special case for korean font texture in korean GC
-		 	palette = fx_bank.read_multiple<u32>(entry.palette, 16); //4bpp
-		 	pixels = fx_bank.read_multiple<u8>(entry.texture, abs(entry.width) * abs(entry.height)/2);
-		 	texture = Texture::create_4bit_paletted(abs(entry.width), abs(entry.height), pixels, palette); //width and height are negative so they need to be abs
-			//texture.swizzle_palette() //not needed apparently
-			texture.to_8bit_paletted();
-		 }
-		 else{		
-			palette = fx_bank.read_multiple<u32>(entry.palette, 256); //8bpp
-			pixels = fx_bank.read_multiple<u8>(entry.texture, entry.width * entry.height);
-			texture = Texture::create_8bit_paletted(entry.width, entry.height, pixels, palette);
-			if (game == Game::DL) {
-				texture.swizzle();
-			}
-			texture.swizzle_palette(); 
-		 }
-		texture.multiply_alphas();
-		
+
 		std::string name;
 		switch (game) {
 			case Game::GC: {
@@ -552,7 +531,29 @@ void unpack_fx_textures(
 		if (name.empty()) {
 			name = std::to_string(i);
 		}
+
+		const FxTextureEntry& entry = entries[i];
+		std::vector<u32> palette;
+		std::vector<u8> pixels;
+		Texture texture;
+		 if (game == Game::GC && region == Region::KOREA && (name == "font_1" || name == "font_2")){  // special case for korean font textures in GC
+		 	palette = fx_bank.read_multiple<u32>(entry.palette, 16); //4bpp
+		 	pixels = fx_bank.read_multiple<u8>(entry.texture, abs(entry.width) * abs(entry.height)/2);
+		 	texture = Texture::create_4bit_paletted(abs(entry.width), abs(entry.height), pixels, palette); //width and height are negative so they need to be abs
+			texture.to_8bit_paletted();
+		 }
+		 else{		
+			palette = fx_bank.read_multiple<u32>(entry.palette, 256); //8bpp
+			pixels = fx_bank.read_multiple<u8>(entry.texture, entry.width * entry.height);
+			texture = Texture::create_8bit_paletted(entry.width, entry.height, pixels, palette);
+			if (game == Game::DL) {
+				texture.swizzle();
+			}
+			texture.swizzle_palette(); 
+		 }
+		texture.multiply_alphas();
 		
+
 		TextureAsset& asset = fx_textures.child<TextureAsset>(i);
 		auto [stream, ref] = asset.file().open_binary_file_for_writing(name + ".png");
 		write_png(*stream, texture);

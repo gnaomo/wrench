@@ -259,9 +259,9 @@ void Texture::to_8bit_paletted()
 					if (x % 2 == 0) {
 						index &= 0xf;
 					} else {
-						index >>= 4; //"if" and "else" contents were swapped before, between eachother. Fix suggested by Radu, to fix korean font unpacking, untested on other cases.
+						index >>= 4;
 					}
-					indices[y * width + x] = index;
+						indices[y * width + x] = index;
 				}
 			}
 			data = std::move(indices);

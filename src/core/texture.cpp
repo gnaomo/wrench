@@ -261,7 +261,7 @@ void Texture::to_8bit_paletted()
 					} else {
 						index >>= 4;
 					}
-						indices[y * width + x] = index;
+					indices[y * width + x] = index;
 				}
 			}
 			data = std::move(indices);
